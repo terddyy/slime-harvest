@@ -1,0 +1,26 @@
+# Slime Harvest - web build + Windows download, served by Caddy.
+# Add this block to the Caddyfile you already run (don't replace your other sites),
+# change the domain, then: caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy
+# Caddy gets the HTTPS certificate by itself once the domain's DNS points at the VPS.
+
+play.example.com {
+	root * /srv/slime-harvest/web
+	encode zstd gzip
+
+	# The game files keep the same names between releases (index.wasm, index.pck ...),
+	# so browsers must re-check them; the ETag makes that a cheap 304 when nothing changed.
+	header Cache-Control "no-cache"
+	header X-Content-Type-Options "nosniff"
+	header Referrer-Policy "strict-origin-when-cross-origin"
+
+	# The Windows build: https://play.example.com/download/SlimeHarvest.exe
+	handle_path /download/* {
+		root * /srv/slime-harvest/download
+		file_server
+	}
+
+	file_server
+}
+
+# Not needed: the Cross-Origin-Opener-Policy / Cross-Origin-Embedder-Policy headers.
+# The Web export preset has thread support off, so the game runs without them.

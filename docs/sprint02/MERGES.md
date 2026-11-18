@@ -1,0 +1,6 @@
+- B1 (worktree-wf_ccf14fca-67f-11): merged cleanly, no conflicts; tests 898/0, aim, playthrough, smoke green.
+- B2 (worktree-wf_ccf14fca-67f-12): conflicts in GDD.md, how_to_play.gd, aim_test.gd resolved keeping both sides (board + farmhouse/sleep); tests 910/0, aim, playthrough, smoke green.
+- B6 (worktree-wf_ccf14fca-67f-16): conflicts in CLAUDE.md, GDD.md, main.gd resolved keeping both sides (Azy hint + board/farmhouse hints); how_to_play mentions Azy; tests 915/0, aim, playthrough, smoke green.
+- B3 (worktree-wf_ccf14fca-67f-13): conflicts in ASSETS.md, how_to_play.gd, main.gd resolved keeping both sides (herd collect + board/farmhouse/Azy hints); tests 936/0, aim, playthrough, smoke green.
+- B5 (worktree-wf_ccf14fca-67f-15): conflicts in GDD.md, game.gd, main.gd, shop.gd resolved keeping both sides (orchard + herd/board/farmhouse); Game.bag_total() now counts crops+fruit+products, shop uses it; tests 958/0, aim, playthrough, smoke green.
+- B4 (worktree-wf_ccf14fca-67f-14): conflicts in GDD.md, how_to_play.gd, main.gd, aim_test.gd, run_tests.gd resolved keeping both sides (Gayle talk/hint added to Azy/board/herd/orchard chain); tests 964/0, aim, playthrough, smoke green.

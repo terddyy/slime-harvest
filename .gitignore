@@ -1,0 +1,17 @@
+# Godot cache
+.godot/
+*.import.tmp
+export/
+
+# The Cute Fantasy pack can't be redistributed: keep it local only (see README).
+assets/cute_fantasy/
+# The game icon is made from pack sprites, so it stays local too.
+assets/icon.png
+assets/icon.png.import
+
+# Agent worktrees and local Claude settings
+.claude/
+
+# Local-only notes and server keys
+CLAUDE.local.md
+keys/

@@ -1,0 +1,35 @@
+# Slime Harvest - nginx site for the web build + Windows download.
+# Install: copy to /etc/nginx/sites-available/slimeharvest.imogen.dev, symlink it into
+# sites-enabled, `nginx -t && systemctl reload nginx`, then once DNS points at the VPS:
+# `certbot --nginx -d slimeharvest.imogen.dev` (adds the HTTPS block and the redirect).
+
+server {
+	listen 80;
+	listen [::]:80;
+	server_name slimeharvest.imogen.dev;
+
+	root /srv/slime-harvest/web;
+	index index.html;
+
+	# The engine (.wasm) is ~40 MB; gzip brings it to roughly a quarter.
+	gzip on;
+	gzip_types application/wasm application/javascript application/octet-stream text/css;
+	gzip_min_length 1024;
+
+	# Same file names every release, so browsers re-check them (cheap 304 via ETag).
+	add_header Cache-Control "no-cache" always;
+	add_header X-Content-Type-Options "nosniff" always;
+	add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+	location / {
+		try_files $uri $uri/ =404;
+	}
+
+	# https://slimeharvest.imogen.dev/download/SlimeHarvest.exe
+	location /download/ {
+		alias /srv/slime-harvest/download/;
+	}
+}
+
+# Not needed: Cross-Origin-Opener-Policy / Cross-Origin-Embedder-Policy. The Web export has
+# thread support off, so the game runs without them.

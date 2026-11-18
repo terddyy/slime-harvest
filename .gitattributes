@@ -1,0 +1,10 @@
+# Godot rewrites .import files with LF; keep them LF so imports do not show as changes.
+*.import text eol=lf
+*.gd text eol=lf
+*.tscn text eol=lf
+*.tres text eol=lf
+*.godot text eol=lf
+*.uid text eol=lf
+*.md text eol=lf
+*.wav binary
+*.png binary
