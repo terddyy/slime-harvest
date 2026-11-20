@@ -16,6 +16,8 @@ const FARMER_TINTS: Array[Color] = [
 const SNAPSHOT_SKIP := ["player", "camera"]
 ## Everywhere a farmer can be, including the farmhouse room that sits far off the map (Farmhouse.ROOM_ORIGIN).
 const WORLD_BOUNDS := Rect2(0, 0, 4400, 1400)
+## x from which a position is inside the farmhouse room (Farmhouse.ROOM_ORIGIN.x is 4000, the map ends at 1280).
+const INDOORS_FROM_X := 3900.0
 const FACINGS: Array[Vector2] = [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]
 ## Players closer to the screen centre than this are not pushed apart (see start_offset).
 const START_SPACING := 20.0
@@ -28,6 +30,16 @@ static func slot(id: int) -> int:
 
 static func tint(id: int) -> Color:
 	return FARMER_TINTS[slot(id)]
+
+
+## True for the farmhouse room, which is drawn far away from the farm.
+static func is_indoors(world_position: Vector2) -> bool:
+	return world_position.x >= INDOORS_FROM_X
+
+
+## You only see another farmer while you are both outside or both in the farmhouse room.
+static func can_see(viewer_position: Vector2, other_position: Vector2) -> bool:
+	return is_indoors(viewer_position) == is_indoors(other_position)
 
 
 ## A joiner starts next to the host's start spot, one step further right for each slot.

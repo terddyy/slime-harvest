@@ -81,6 +81,8 @@ func has_farm() -> bool:
 func _process(delta: float) -> void:
 	if not Net.is_online() or player == null:
 		return
+	for farmer: RemoteFarmer in _farmers.values():  # somebody in the farmhouse is out of sight
+		farmer.visible = CoopRules.can_see(player.global_position, farmer.global_position)
 	_send_time += delta
 	if _send_time < SEND_INTERVAL:
 		return

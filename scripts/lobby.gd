@@ -215,6 +215,7 @@ func _refresh_roster() -> void:
 		var tag := " (host)" if id == Net.HOST_ID else ""
 		tag += " (you)" if id == Net.my_id() else ""
 		lines.append(Net.players[id] + tag)
+	lines.push_front("Players %d/%d" % [ids.size(), RelayPeer.MAX_PLAYERS])
 	_roster_label.text = "\n".join(lines)
 	_start_button.visible = Net.is_host()
 

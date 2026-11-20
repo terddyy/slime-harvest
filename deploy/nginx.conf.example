@@ -29,6 +29,21 @@ server {
 	location /download/ {
 		alias /srv/slime-harvest/download/;
 	}
+
+	# Online co-op: the room relay (deploy/slime-relay.service) listens on 127.0.0.1:9080 and the game
+	# connects to wss://slimeharvest.imogen.dev/relay. Certbot copies this server block into the
+	# HTTPS one, but check that the 443 block has this location too (nginx -T | grep -n relay).
+	location = /relay {
+		proxy_pass http://127.0.0.1:9080;
+		proxy_http_version 1.1;
+		proxy_set_header Upgrade $http_upgrade;
+		proxy_set_header Connection "upgrade";
+		proxy_set_header Host $host;
+		proxy_buffering off;
+		# nginx closes a quiet connection after 60 s by default; a room can sit in the lobby for minutes.
+		proxy_read_timeout 3600s;
+		proxy_send_timeout 3600s;
+	}
 }
 
 # Not needed: Cross-Origin-Opener-Policy / Cross-Origin-Embedder-Policy. The Web export has

@@ -1224,6 +1224,9 @@ func _test_coop_rules() -> void:
 		tints[CoopRules.tint(id)] = true
 	_check(tints.size() == 4, "the four farmers have four different colours")
 	_check(CoopRules.start_offset(1) == Vector2.ZERO and CoopRules.start_offset(3).x > CoopRules.start_offset(2).x, "joiners start further apart")
+	_check(CoopRules.is_indoors(Vector2(4096, 134)) and not CoopRules.is_indoors(Vector2(1256, 134)), "the farmhouse room is indoors, the map is not")
+	_check(CoopRules.can_see(Vector2(100, 100), Vector2(900, 700)) and CoopRules.can_see(Vector2(4050, 100), Vector2(4100, 90)), "farmers outside, or both indoors, see each other")
+	_check(not CoopRules.can_see(Vector2(100, 100), Vector2(4096, 134)) and not CoopRules.can_see(Vector2(4096, 134), Vector2(100, 100)), "a farmer indoors is out of sight outside")
 	var sections := {"game": {"gold": 5}, "farm": {}, "player": {"x": 1}, "camera": {"zoom": 2}}
 	var kept := CoopRules.joiner_sections(sections)
 	_check(kept.has("game") and kept.has("farm") and not kept.has("player") and not kept.has("camera"), "a joiner keeps its own player and camera")

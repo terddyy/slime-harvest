@@ -1,0 +1,25 @@
+# Slime Harvest co-op room relay (server/relay.gd run by a headless Godot, no project needed).
+# Install: copy to /etc/systemd/system/slime-relay.service, then
+#   systemctl daemon-reload && systemctl enable --now slime-relay
+# Needs the Linux Godot 4.7.2 binary at /opt/godot/godot (see deploy/README.md).
+# The relay only listens on 127.0.0.1:9080; nginx (or Caddy) forwards /relay to it.
+
+[Unit]
+Description=Slime Harvest co-op relay
+After=network.target
+
+[Service]
+WorkingDirectory=/srv/slime-harvest/relay
+ExecStart=/opt/godot/godot --headless --script relay.gd -- --port=9080
+Restart=on-failure
+RestartSec=3
+# Run as a throwaway user with no write access except a private /tmp (Godot wants a HOME).
+DynamicUser=yes
+Environment=HOME=/tmp
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target

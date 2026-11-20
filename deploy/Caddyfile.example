@@ -19,6 +19,12 @@ play.example.com {
 		file_server
 	}
 
+	# Online co-op: the room relay (deploy/slime-relay.service) listens on 127.0.0.1:9080.
+	# Caddy proxies WebSockets without extra settings: the game connects to wss://<domain>/relay.
+	handle /relay {
+		reverse_proxy 127.0.0.1:9080
+	}
+
 	file_server
 }
 

@@ -231,7 +231,7 @@ After night 7 every night adds 1 small and 1 medium slime every 2 nights and 1 b
   still waters nearby crops by day and only hits slimes within 40 px at night.
 
 ### Saving
-- One file, `user://save.json` (JSON, `"version": 1`). No database: the game is single-player and offline.
+- One file, `user://save.json` (JSON, `"version": 1`). No database: the save lives on the player's own PC (in the browser: its storage). Online, only the host saves.
 - Saved: day and clock, gold, seeds, crops in the bag, upgrades, fence pieces, restored buildings,
   tilled/wet soil, crops (type, stage, bites, wet ticks), fences (cell + HP), player position,
   facing, tool and seed, camera zoom, Gayle (position + Follow/Stay).
@@ -239,6 +239,28 @@ After night 7 every night adds 1 small and 1 medium slime every 2 nights and 1 b
   a save made at night resumes just before the next dusk.
 - Title: Continue (only if a valid save exists) and New Game (asks before deleting an existing save).
 - A missing, damaged or other-version file counts as no save.
+
+### Online co-op (`scripts/net.gd`, `lobby.gd`, `coop_*.gd`, `server/relay.gd`)
+- Title: **Play Together**. One player hosts their own farm and gets a 6-character room code
+  (letters and digits without 0/O/1/I); up to 3 friends pick Join with a Code, type it and their name. The room holds 4 players.
+  Everybody plays on the host's farm; solo play is unchanged and never touches the network.
+- The host's game is the real one: only the host grows crops, spawns and moves slimes, animals and Gayle,
+  runs the clock and saves. A friend's actions (tools, harvest, buying, restoring, sword) are requests the host checks
+  (known tool and seed, close enough to where that farmer stands, only the shop calls) and then applies; the result is sent to everybody.
+- Gold, seeds, the bag, storage, upgrades and restored buildings are shared. Each player has their own tool and seed choice.
+- Menus (shop, board, bag, Esc) do **not** pause the world online, and the farmer stands still while one is open.
+- Sleeping: the night is skipped only when every player is in bed ("Waiting for N more..."); E gets you out of bed again.
+  Dawn also wakes everybody.
+- Joining: the host sends the whole farm (the same data as a save file) and the friend loads it without writing a save.
+  Joining in the middle of the night works: the friend gets the night clock and the slimes already out.
+  Joining while the host is in the farmhouse works too. A farmer inside the farmhouse is out of sight for players outside, and the other way round.
+- Leaving: a friend leaving shows "X left". If the host leaves, the others get "The host left" and go back to the title.
+  If the room server drops the host, the host plays on alone.
+- Messages the player can see: "Can't reach the room server. Check your internet and try again.", "No room with that code.",
+  "Room codes have 6 letters and numbers.", "That room is full.", "The host closed the room.".
+- Connection: the game connects by WebSocket to `wss://slimeharvest.imogen.dev/relay`. The relay (`server/relay.gd`) only passes
+  packets between the players of a room; it holds no game data. Hosting it: `deploy/README.md`.
+- Not covered: friends can't talk to Gayle, the ending credits pause the host's world, only the host's progress is saved.
 
 ### First-day tips (tutorial)
 - A small box at the top of the screen (`scripts/tutorial.gd`, steps in

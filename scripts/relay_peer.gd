@@ -10,6 +10,7 @@ signal relay_error(reason: String)  ## could not connect, or the relay refused (
 const CODE_LENGTH := 6
 const CODE_CHARS := "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # keep in sync with server/relay.gd
 const MAX_NAME_LENGTH := 16
+const MAX_PLAYERS := 4  # keep in sync with server/relay.gd
 const BUFFER_SIZE := 1 << 21
 const CONNECT_TIMEOUT_MS := 10000
 const MAX_PACKET_SIZE := 1 << 20

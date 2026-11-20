@@ -32,6 +32,8 @@ GODOT="<path to Godot_v4.7.2-stable_win64_console.exe>"   # the real path is in 
   `"$GODOT" --headless --path . res://tests/net_test.tscn`
 - Co-op world sync (host + joiner process play till -> plant -> harvest -> shop -> sword -> bed, then compare worlds):
   `"$GODOT" --headless --path . res://tests/coop_world_test.tscn`
+- Co-op edge cases (lobby messages for a dead relay and a wrong code, a joiner arriving mid-night while the host is in the farmhouse):
+  `"$GODOT" --headless --path . res://tests/coop_edge_test.tscn`
 - Aim regression test (real input events, exit 1 on failure):
   `"$GODOT" --headless --path . res://tests/aim_test.tscn`
 - Restore-everything playthrough by a bot (farms, keeps animals + orchard, buys projects in order;
@@ -72,6 +74,7 @@ scripts/coop_world.gd class CoopWorld: online world sync: joiner requests (tools
 scripts/coop_entities.gd class CoopEntities: host sends slimes, animals and Gayle about 10x/s; joiners show puppet copies
 scripts/world_actions.gd class WorldActions: what tools, E and harvesting do to the farm (shared by the player and the host handling a joiner's request)
 server/relay.gd     room relay (headless Godot script, standalone, not exported): rooms, codes, forwards packets
+deploy/slime-relay.service  systemd unit for the relay (nginx forwards /relay to it; steps in deploy/README.md)
 scripts/game.gd      autoload "Game": settings, clock (day/night), gold, seeds/crops per type, fence pieces,
                      upgrade levels + prices, end of run, input map, scene changes
 scripts/world_layout.gd class WorldLayout: the 80x50 map as data (areas, ponds, paths, trees, rocks; tested)

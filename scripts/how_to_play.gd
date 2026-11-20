@@ -37,7 +37,7 @@ func _ready() -> void:
 			"Imogen and Gayle are fixing up the family farm. Till, plant and water crops,\n"
 			+ "sell them to Azy at the stall, and fight off the slimes that eat them at night.\n"
 			+ "Earn gold to restore every building at the board by the farmhouse.\n"
-			+ "Gayle helps; sleeping in the farmhouse skips the night. The game autosaves.")
+			+ "Gayle helps; sleeping skips the night. Autosaves. Friends can join (Play Together).")
 	column.add_child(goal)
 
 	var grid := GridContainer.new()
