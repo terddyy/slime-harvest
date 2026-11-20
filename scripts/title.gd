@@ -107,7 +107,7 @@ func _focus_first_button() -> void:
 func _continue_game() -> void:
 	Game.reset()
 	SaveGame.load_requested = true
-	Game.get_tree().change_scene_to_file(Game.MAIN_SCENE)
+	Game.enter_farm()
 
 
 ## With a save on disk, ask before it is thrown away.

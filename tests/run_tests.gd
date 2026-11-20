@@ -10,6 +10,7 @@ var _checks := 0
 func _initialize() -> void:
 	await process_frame  # let autoloads (Game) finish _ready
 	_test_economy()
+	_test_loading_tips()
 	_test_crop_data()
 	_test_inventory_per_type()
 	_test_upgrades()
@@ -1031,6 +1032,16 @@ func _test_inventory_rows() -> void:
 	game.add_product("egg")
 	_check(InventoryRows.storage_total(InventoryRows.storage(game.inventory_state())) == game.bag_value(), "storage total matches Game.bag_value()")
 	game.reset()
+
+
+func _test_loading_tips() -> void:
+	_check(not LoadingTips.TIPS.is_empty(), "there are loading tips")
+	_check(LoadingTips.tip(0) == LoadingTips.TIPS[0], "tip 0 is the first tip")
+	_check(LoadingTips.TIPS.has(LoadingTips.tip(-7)), "a negative number still gives a tip")
+	_check(LoadingTips.tip(LoadingTips.TIPS.size()) == LoadingTips.TIPS[0], "tips wrap around")
+	_check(LoadingTips.percent([]) == 0, "no progress data means 0 percent")
+	_check(LoadingTips.percent([0.456]) == 46, "progress 0.456 is 46 percent")
+	_check(LoadingTips.percent([3.0]) == 100, "progress is clamped to 100")
 
 
 func _goal_by_id(goals: Array[Dictionary], id: String) -> Dictionary:

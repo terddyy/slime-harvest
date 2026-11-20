@@ -37,6 +37,7 @@ const FENCE_BUNDLE_PRICE := 10
 const NIGHT_RESUME_TIME := 3.0
 const TITLE_SCENE := "res://scenes/title.tscn"
 const MAIN_SCENE := "res://scenes/main.tscn"
+const LOADING_SCENE := "res://scenes/loading.tscn"
 
 ## Action name -> keys. Registered in code so the bindings are easy to read in one place.
 const KEY_BINDINGS := {
@@ -428,8 +429,13 @@ func _load_milestones(data: Dictionary) -> void:
 ## Starts a fresh run (used by the title screen and pause menu).
 func start_new_game() -> void:
 	reset()
+	enter_farm()
+
+
+## Title / restart -> farm, through the loading screen (it loads MAIN_SCENE on a thread).
+func enter_farm() -> void:
 	get_tree().paused = false
-	get_tree().change_scene_to_file(MAIN_SCENE)
+	get_tree().change_scene_to_file(LOADING_SCENE)
 
 
 func go_to_title() -> void:

@@ -100,6 +100,9 @@ scripts/gayle.gd     class Gayle (CharacterBody2D): spouse helper, follows Imoge
 scripts/gayle_brain.gd class GayleBrain: pure target choice for Gayle (tested)
 scripts/gayle_talk.gd class GayleTalk (CanvasLayer): E dialog, Follow / Stay toggle, pauses
 scripts/cursor.gd    tile highlight in front of the player
+scripts/loading_screen.gd class LoadingScreen (scenes/loading.tscn): title -> farm, loads main.tscn on a thread with bar + tip
+scripts/loading_tips.gd class LoadingTips: tip list + progress percent (pure, tested)
+html/shell.html   custom web shell (logo, progress bar, tip); boot splash = logo.png via project.godot
 scripts/title.gd     title screen: farm backdrop with hopping slimes, Start / How to Play / Quit
 scripts/pause_menu.gd class PauseMenu (CanvasLayer): Esc menu, pauses the tree
 scripts/how_to_play.gd class HowToPlay: goal + controls panel (title and pause menu)

@@ -205,3 +205,5 @@ Each has its prompt next to it (`<name>.prompt.txt`). Raw renders are big, so
 - `icon.png` (256x256): slime + carrot app icon. `config/icon` in `project.godot` and `application/icon`
   in `export_presets.cfg` point at it (replaces the old pack-derived `assets/icon.png`).
 - No separate title-screen illustration: the pack farm backdrop already fills the screen.
+- Loading screens reuse `logo.png`: desktop boot splash (`boot_splash/image` in `project.godot`, bg color = `UiStyle.OUTLINE_COLOR`),
+  web shell `html/shell.html` (logo embedded as base64), and `scenes/loading.tscn` between title and farm.
