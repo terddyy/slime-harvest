@@ -5,7 +5,7 @@ extends CanvasLayer
 ## Esc or E closes it. Prices and upgrade rules live in Game and Crop.TYPES.
 
 const SCREEN := Vector2(480, 270)
-const ROW_SIZE := Vector2(172, 17)
+const ROW_SIZE := Vector2(172, 16)
 const TOOL_ICONS := preload("res://assets/cute_fantasy/Icons/Outline/Tool_Icons_Outline.png")
 const FOOD_ICONS := preload("res://assets/cute_fantasy/Icons/Outline/Food_Icons_Outline.png")
 const RESOURCE_ICONS := preload("res://assets/cute_fantasy/Icons/Outline/Resources_Icons_Outline.png")
@@ -123,6 +123,16 @@ func _buy_fences() -> void:
 		Audio.play_sfx("error")
 
 
+func _buy_sprinkler() -> void:
+	var blocked := Sprinklers.block_reason(Game.restored, Game.gold)
+	if blocked == "" and Game.buy_sprinkler():
+		_info_label.text = "Bought a sprinkler. Equip it (6 / Tab), then place it on the farm."
+		Audio.play_sfx("buy")
+	else:
+		_info_label.text = blocked
+		Audio.play_sfx("error")
+
+
 func _buy_animal(animal_id: String) -> void:
 	var blocked := AnimalTypes.block_reason(animal_id, Game.restored, Game.animal_count(animal_id), Game.gold)
 	if blocked == "" and Game.buy_animal(animal_id):
@@ -157,6 +167,9 @@ func _describe(item: String) -> String:
 		var data: Dictionary = Orchard.TYPES[item.trim_prefix(SAPLING_PREFIX)]
 		return "%s tree: grows in %d days, then %d fruit every %d days (%dg each)." % [
 			data["name"], Orchard.MATURE_DAYS, Orchard.FRUIT_PER_TREE, Orchard.FRUIT_DAYS, data["fruit_price"]]
+	if item == "sprinkler":
+		return "Waters the 3x3 tiles around it every morning (%dg). Needs the %s." % [
+			Sprinklers.PRICE, String(Restoration.project(Sprinklers.REQUIRES)["name"]).to_lower()]
 	if item == "fences":
 		return "Slimes must chew through a fence (%d HP). Build with 5." % Fences.MAX_HP
 	return "Esc or E also closes the shop."
@@ -197,6 +210,8 @@ func _refresh() -> void:
 	for tree_id: String in Orchard.TYPES:
 		var price: int = Orchard.TYPES[tree_id]["sapling_price"]
 		_set_row(SAPLING_PREFIX + tree_id, "%s sapling x%d" % [Orchard.TYPES[tree_id]["name"], Game.sapling_count(tree_id)], "%dg" % price, Game.gold >= price)
+	var can_sprinkle := Sprinklers.block_reason(Game.restored, Game.gold) == ""
+	_set_row("sprinkler", "Sprinkler (have %d)" % Game.sprinkler_pieces, "%dg" % Sprinklers.PRICE, can_sprinkle)
 	_set_row("fences", "%d fences (have %d)" % [Game.FENCE_BUNDLE, Game.fence_pieces], "%dg" % Game.FENCE_BUNDLE_PRICE, Game.gold >= Game.FENCE_BUNDLE_PRICE)
 
 
@@ -260,7 +275,8 @@ func _build() -> void:
 	_add_row(right, "fences", _icon(FENCE_ICONS, FENCE_ICON), _buy_fences)
 	for animal_id: String in AnimalTypes.TYPES:
 		var product: Dictionary = AnimalTypes.PRODUCTS[AnimalTypes.TYPES[animal_id]["product"]]
-		_add_row(right, animal_id, _icon(FOOD_ICONS, product["icon"]), _buy_animal.bind(animal_id))
+		_add_row(right, animal_id, _icon(Hud.product_sheet(product), product["icon"]), _buy_animal.bind(animal_id))
+	_add_row(right, "sprinkler", _icon(Hud.LATE_ICONS, InventoryRows.SPRINKLER_CELL), _buy_sprinkler)
 	for tree_id: String in Orchard.TYPES:
 		_add_row(right, SAPLING_PREFIX + tree_id, _icon(FRUIT_ICONS, Vector2i(SAPLING_ICON_CELLS[tree_id], 0)), _buy_sapling.bind(tree_id))
 	_add_row(right, "leave", null, close)
@@ -277,7 +293,7 @@ func _build() -> void:
 
 func _add_column(parent: Container, heading: String) -> VBoxContainer:
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 1)
+	column.add_theme_constant_override("separation", 0)
 	parent.add_child(column)
 	var label := Label.new()
 	label.text = heading

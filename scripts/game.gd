@@ -51,6 +51,7 @@ var fruit_in_bag := {}  # fruit tree id (Orchard.TYPES) -> count
 var saplings := {}  # fruit tree id -> count, ready to plant in the orchard
 var upgrades := {}  # upgrade id -> level bought
 var fence_pieces := START_FENCES  # fences in the bag, ready to build
+var sprinkler_pieces := 0  # sprinklers in the bag, ready to place (see Sprinklers)
 var restored := {}  # project id -> true, for every repaired building
 var animals := {}  # animal id -> how many you own (see AnimalTypes)
 var products_in_bag := {}  # product id (egg, milk) -> count, sold with the crops
@@ -74,6 +75,7 @@ func reset() -> void:
 	saplings = {}
 	upgrades = {}
 	fence_pieces = START_FENCES
+	sprinkler_pieces = 0
 	restored = {}
 	animals = {}
 	products_in_bag = {}
@@ -284,6 +286,32 @@ func return_fence() -> void:
 	stats_changed.emit()
 
 
+## Buys one sprinkler. Needs the greenhouse restored and the gold.
+func buy_sprinkler() -> bool:
+	if Sprinklers.block_reason(restored, gold) != "":
+		return false
+	gold -= Sprinklers.PRICE
+	sprinkler_pieces += 1
+	stats_changed.emit()
+	return true
+
+
+## Takes one sprinkler out of the bag to place it.
+func use_sprinkler() -> bool:
+	if sprinkler_pieces <= 0:
+		return false
+	sprinkler_pieces -= 1
+	mark("sprinkled")
+	stats_changed.emit()
+	return true
+
+
+## A sprinkler was picked back up.
+func return_sprinkler() -> void:
+	sprinkler_pieces += 1
+	stats_changed.emit()
+
+
 func add_gold(amount: int) -> void:
 	gold += amount
 	stats_changed.emit()
@@ -312,6 +340,8 @@ func goal_state() -> Dictionary:
 		"restored": restored,
 		"chickens": animal_count("chicken"),
 		"cows": animal_count("cow"),
+		"sheep": animal_count("sheep"),
+		"sprinklers": sprinkler_pieces,
 		"saplings": total(saplings),
 		"milestones": milestones,
 	}
@@ -324,6 +354,7 @@ func inventory_state() -> Dictionary:
 		"seeds": seeds,
 		"saplings": saplings,
 		"fences": fence_pieces,
+		"sprinklers": sprinkler_pieces,
 		"crops": crops_in_bag,
 		"fruit": fruit_in_bag,
 		"products": products_in_bag,
@@ -357,6 +388,7 @@ func to_save() -> Dictionary:
 		"saplings": saplings.duplicate(),
 		"upgrades": upgrades.duplicate(),
 		"fence_pieces": fence_pieces,
+		"sprinkler_pieces": sprinkler_pieces,
 		"restored": restored.keys(),
 		"animals": animals.duplicate(),
 		"products_in_bag": products_in_bag.duplicate(),
@@ -379,6 +411,7 @@ func from_save(data: Dictionary) -> void:
 	for id: String in levels:
 		upgrades[id] = mini(levels[id], UPGRADE_PRICES[id].size())
 	fence_pieces = maxi(0, int(SaveUtil.number(data, "fence_pieces", START_FENCES)))
+	sprinkler_pieces = maxi(0, int(SaveUtil.number(data, "sprinkler_pieces", 0)))
 	for id: Variant in SaveUtil.list(data.get("restored")):
 		if id is String and not Restoration.project(id).is_empty():
 			restored[id] = true

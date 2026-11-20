@@ -9,7 +9,7 @@ signal closed
 ## change it); {move} is the four move keys. Keep in sync with the Controls table in docs/GDD.md.
 const CONTROLS := [
 	["{move} / arrows", "Move"],
-	["{tool_1} / {tool_2} / {tool_3} / {tool_4} / {tool_5}", "Hoe / Watering can / Seeds / Sword / Fence"],
+	["{tool_1} / {tool_2} / {tool_3} / {tool_4} / {tool_5} / {tool_6}", "Hoe / Watering can / Seeds / Sword / Fence / Sprinkler"],
 	["Mouse", "Point at a tile (up to 2 tiles) to aim; wheel or hotbar click: tool"],
 	["Left click / {use_tool}", "Use the tool (hold + drag: many tiles); ripe crop: harvest"],
 	["{cycle_seed}, or {tool_3} again", "Seeds selected: next seed / sapling"],

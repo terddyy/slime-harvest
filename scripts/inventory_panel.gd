@@ -24,6 +24,7 @@ const SHEETS := {
 	"food": Hud.FOOD_ICONS,
 	"fruit": Shop.FRUIT_ICONS,
 	"fence": Hud.FENCE_ICONS,
+	"late": Hud.LATE_ICONS,
 }
 
 var player: Player
@@ -188,6 +189,8 @@ func _is_equipped(row: Dictionary) -> bool:
 			return player.tool == Player.Tool.SEEDS and player.seed_id == row["id"]
 		"fence":
 			return player.tool == Player.Tool.FENCE
+		"sprinkler":
+			return player.tool == Player.Tool.SPRINKLER
 		"sapling":
 			return player.tool == Player.Tool.SEEDS and player.sapling_id == row["id"]
 	return false
@@ -201,6 +204,10 @@ func _on_backpack_pressed(row: Dictionary) -> void:
 		"fence":
 			if player != null:
 				player.choose_slot(Player.Tool.FENCE)
+				close()
+		"sprinkler":
+			if player != null:
+				player.choose_slot(Player.Tool.SPRINKLER)
 				close()
 		"sapling":
 			if player != null and player.equip_sapling(row["id"]):

@@ -29,6 +29,7 @@ func _initialize() -> void:
 	_test_fence_economy()
 	_test_fence_placement()
 	_test_fence_autotile()
+	_test_sprinklers()
 	_test_fence_damage_and_blocking()
 	_test_farm_signals()
 	_test_tutorial_steps()
@@ -903,6 +904,62 @@ class _Dummy extends Node:
 		value = int(data["value"])
 
 
+func _test_sprinklers() -> void:
+	var game := _game()
+	game.reset()
+	game.gold = Sprinklers.PRICE
+	_check(Sprinklers.block_reason({}, 9999) == "Restore the greenhouse first.", "sprinklers need the greenhouse")
+	_check(not game.buy_sprinkler(), "no sprinkler before the greenhouse is restored")
+	game.restored["greenhouse"] = true
+	_check(Sprinklers.block_reason(game.restored, 0) == "Not enough gold.", "reason says when gold is missing")
+	_check(game.buy_sprinkler() and game.gold == 0 and game.sprinkler_pieces == 1, "a sprinkler costs its price")
+	_check(not game.buy_sprinkler(), "can't afford a second sprinkler")
+	_check(game.use_sprinkler() and game.sprinkler_pieces == 0 and game.milestones.has("sprinkled"), "placing uses the piece and ticks the goal")
+	_check(not game.use_sprinkler(), "can't place without a sprinkler")
+	game.return_sprinkler()
+	_check(game.sprinkler_pieces == 1, "picking a sprinkler up returns the piece")
+	game.sprinkler_pieces = 3
+	var saved: Dictionary = _through_json(game.to_save())
+	game.reset()
+	game.from_save(saved)
+	_check(game.sprinkler_pieces == 3, "sprinklers in the bag round trip")
+	game.from_save({"sprinkler_pieces": -5})
+	_check(game.sprinkler_pieces == 0, "bad sprinkler count is cleaned up")
+	game.reset()
+	_check(game.sprinkler_pieces == 0, "reset empties the sprinkler bag")
+
+	var area := Sprinklers.area_cells(Vector2i(5, 5))
+	_check(area.size() == 9 and area.has(Vector2i(4, 4)) and area.has(Vector2i(6, 6)) and area.has(Vector2i(5, 5)), "a sprinkler covers the 3x3 around it")
+	_check(not area.has(Vector2i(7, 5)), "and nothing further away")
+
+	var farm := _new_farm()
+	farm.blocked[Vector2i(9, 9)] = true
+	var sprinklers := Sprinklers.new()
+	sprinklers.farm = farm
+	sprinklers.sprinkler_parent = farm.crop_parent
+	root.add_child(sprinklers)
+	_check(sprinklers.place(Vector2i(5, 5)) and sprinklers.has_sprinkler(Vector2i(5, 5)), "can place a sprinkler on grass")
+	_check(not sprinklers.place(Vector2i(5, 5)), "can't place two on one tile")
+	_check(not sprinklers.place(Vector2i(9, 9)) and not sprinklers.place(Vector2i(25, 5)), "can't place on a blocked tile or outside the farm")
+	_check(not farm.can_till(Vector2i(5, 5)), "the hoe can't till under a sprinkler")
+	farm.till(Vector2i(4, 4))
+	farm.till(Vector2i(6, 5))
+	farm.till(Vector2i(8, 5))
+	_check(not sprinklers.place(Vector2i(4, 4)), "can't place on tilled soil")
+	farm.water(Vector2i(6, 5))
+	_check(sprinklers.water_all() == 1 and farm.is_wet(Vector2i(4, 4)), "morning: dry tilled tiles nearby get wet, wet ones are skipped")
+	_check(not farm.is_wet(Vector2i(8, 5)), "tiles out of reach stay dry")
+	_check(sprinklers.water_all() == 0, "nothing left to water the second time")
+	var saved_farm: Dictionary = _through_json(sprinklers.to_save())
+	_check(sprinklers.remove(Vector2i(5, 5)) and sprinklers.count() == 0 and farm.can_till(Vector2i(5, 5)), "picking up frees the tile")
+	_check(not sprinklers.remove(Vector2i(5, 5)), "nothing to pick up on an empty tile")
+	sprinklers.from_save(saved_farm)
+	_check(sprinklers.count() == 1 and sprinklers.has_sprinkler(Vector2i(5, 5)), "sprinklers round trip")
+	sprinklers.from_save({"sprinklers": [[1, 1], "x", [99, 99], [1]]})
+	_check(sprinklers.count() == 1 and sprinklers.has_sprinkler(Vector2i(1, 1)), "bad sprinkler data is skipped")
+	sprinklers.queue_free()
+
+
 func _test_animals() -> void:
 	var game := _game()
 	game.reset()
@@ -932,6 +989,13 @@ func _test_animals() -> void:
 	_check(not game.buy_animal("cow"), "can't afford a cow")
 
 	game.reset()
+	game.gold = 1000
+	_check(not game.buy_animal("sheep") and AnimalTypes.block_reason("sheep", game.restored, 0, 1000) == "Restore the greenhouse first.", "no sheep before the greenhouse is restored")
+	game.restored["greenhouse"] = true
+	_check(game.buy_animal("sheep") and game.animal_count("sheep") == 1, "a sheep can be bought once the greenhouse is back")
+	game.add_product("wool")
+	_check(game.bag_value() == int(AnimalTypes.PRODUCTS["wool"]["sell_price"]), "wool is sold with the crops")
+	game.reset()
 	game.add_crop("carrot")
 	game.add_product("egg")
 	game.add_product("egg")
@@ -959,7 +1023,8 @@ func _test_farm_goals() -> void:
 		ids.append(goal["id"])
 	_check(ids.slice(0, 5) == ["harvest", "sell", "restore_well", "restore_farmhouse", "sleep"], "goals start with farm, sell, well, farmhouse, sleep")
 	_check(ids.find("restore_chicken_coop") < ids.find("chicken") and ids.find("restore_barn") < ids.find("cow"), "an animal goal follows its building")
-	_check(ids.find("restore_windmill") < ids.find("restore_greenhouse") and ids[ids.size() - 1] == "saved", "greenhouse is last before the saved goal")
+	_check(ids.find("restore_windmill") < ids.find("restore_greenhouse") and ids.find("saved") == ids.find("restore_greenhouse") + 1, "the saved goal follows the greenhouse")
+	_check(ids.slice(ids.find("saved") + 1) == ["sheep", "sprinkler", "flock"], "late-game goals come after the farm is saved")
 	_check(FarmGoals.current(goals)["id"] == "harvest", "first goal is the current one on a new game")
 	_check(FarmGoals.tracker_text(goals) == "Next: Plant and harvest a crop", "tracker names the first goal")
 
@@ -985,7 +1050,7 @@ func _test_farm_goals() -> void:
 	_check(_goal_by_id(FarmGoals.build({"milestones": {"fruit_tree": true}}), "orchard")["done"], "planting a tree ticks the orchard goal")
 	_check(_goal_by_id(FarmGoals.build({"milestones": {"fenced": true}}), "fence")["done"], "building a fence ticks the fence goal")
 
-	var everything := {"gold": 0, "chickens": 1, "cows": 1, "restored": {}, "milestones": {}}
+	var everything := {"gold": 0, "chickens": 1, "cows": 1, "sheep": 3, "restored": {}, "milestones": {}}
 	for id in Restoration.ids():
 		everything["restored"][id] = true
 	for id in FarmGoals.MILESTONES:
@@ -994,6 +1059,12 @@ func _test_farm_goals() -> void:
 	_check(FarmGoals.current(finished).is_empty(), "no current goal when everything is done")
 	_check(FarmGoals.tracker_text(finished) == FarmGoals.SAVED_TEXT, "tracker says the farm is saved")
 	_check(_goal_by_id(finished, "saved")["text"] == "Farm saved!", "last goal reads Farm saved!")
+
+	var late := FarmGoals.build({"sheep": 1, "sprinklers": 1})
+	_check(_goal_by_id(late, "sheep")["done"] and not _goal_by_id(late, "flock")["done"] and _goal_by_id(late, "flock")["progress"] == 1, "one sheep ticks the sheep goal, not the flock")
+	_check(_goal_by_id(late, "sprinkler")["where"] == "" and _goal_by_id(late, "sprinkler")["text"] == "Place a sprinkler on your farm", "sprinkler in the bag: place it")
+	_check(_goal_by_id(FarmGoals.build({}), "sprinkler")["where"] == "stall", "no sprinkler: buy one at Azy")
+	_check(_goal_by_id(FarmGoals.build({"milestones": {"sprinkled": true}}), "sprinkler")["done"], "placing a sprinkler ticks the goal")
 
 	# Game side: firsts are remembered, saved and read back (old saves without the list are guessed).
 	var game := _game()
@@ -1021,22 +1092,24 @@ func _test_inventory_rows() -> void:
 		"fences": 3,
 		"crops": {"pumpkin": 2, "carrot": 1},
 		"fruit": {"apple": 3},
-		"products": {"egg": 4, "milk": 1},
+		"products": {"egg": 4, "milk": 1, "wool": 2},
+		"sprinklers": 2,
 	}
 	var pack := InventoryRows.backpack(state)
 	var kinds: Array[String] = []
 	for row in pack:
 		kinds.append("%s:%s:%d" % [row["kind"], row["id"], row["count"]])
-	_check(kinds == ["seed:carrot:6", "seed:corn:2", "sapling:pear:1", "fence:fence:3"], "backpack lists seeds, saplings and fences with counts, empty types left out")
+	_check(kinds == ["seed:carrot:6", "seed:corn:2", "sapling:pear:1", "fence:fence:3", "sprinkler:sprinkler:2"], "backpack lists seeds, saplings, fences and sprinklers with counts, empty types left out")
 	var stored := InventoryRows.storage(state)
 	var ids: Array[String] = []
 	for row in stored:
 		ids.append(String(row["id"]))
-	_check(ids == ["carrot", "pumpkin", "apple", "egg", "milk"], "storage lists crops, fruit, then products")
+	_check(ids == ["carrot", "pumpkin", "apple", "egg", "milk", "wool"], "storage lists crops, fruit, then products")
 	var expected: int = int(Crop.TYPES["carrot"]["sell_price"]) + 2 * int(Crop.TYPES["pumpkin"]["sell_price"])
 	expected += 3 * int(Orchard.TYPES["apple"]["fruit_price"])
-	expected += 4 * int(AnimalTypes.PRODUCTS["egg"]["sell_price"]) + int(AnimalTypes.PRODUCTS["milk"]["sell_price"])
+	expected += 4 * int(AnimalTypes.PRODUCTS["egg"]["sell_price"]) + int(AnimalTypes.PRODUCTS["milk"]["sell_price"]) + 2 * int(AnimalTypes.PRODUCTS["wool"]["sell_price"])
 	_check(InventoryRows.storage_total(stored) == expected, "storage total adds up every sell price")
+	_check(String(stored[stored.size() - 1]["sheet"]) == "late" and String(stored[0]["sheet"]) == "food", "wool uses the generated icon sheet, crops the food sheet")
 	var game := _game()
 	game.reset()
 	game.add_crop("carrot")

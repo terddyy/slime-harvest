@@ -7,13 +7,13 @@ extends RefCounted
 ## "where" names a guide arrow target (see Main._guide_point), or "" for nowhere.
 
 ## One-off things that can't be derived from the current state, saved in Game.milestones.
-const MILESTONES: Array[String] = ["harvested", "sold", "slept", "fruit_tree", "fenced"]
+const MILESTONES: Array[String] = ["harvested", "sold", "slept", "fruit_tree", "fenced", "sprinkled"]
 
-const SAVED_TEXT := "All goals done - the farm is saved!"
+const SAVED_TEXT := "All goals done - enjoy your farm!"
 
 
-## The state keys read: gold, restored (id -> true), chickens, cows, saplings (in the bag),
-## milestones (id -> true). Missing keys count as empty.
+## The state keys read: gold, restored (id -> true), chickens, cows, sheep, sprinklers (in the bag),
+## saplings (in the bag), milestones (id -> true). Missing keys count as empty.
 static func build(state: Dictionary) -> Array[Dictionary]:
 	var gold := int(state.get("gold", 0))
 	var restored: Dictionary = state.get("restored", {})
@@ -38,6 +38,12 @@ static func build(state: Dictionary) -> Array[Dictionary]:
 	var total := Restoration.PROJECTS.size()
 	var count := mini(restored.size(), total)
 	goals.append(_goal("saved", "Farm saved!" if count >= total else "Save the farm %d/%d" % [count, total], count, total, ""))
+	# Late game: Azy sells these once the farm is saved (greenhouse restored).
+	goals.append(_goal("sheep", "Buy a sheep from Azy", int(state.get("sheep", 0)), 1, "stall"))
+	var has_sprinkler := int(state.get("sprinklers", 0)) > 0
+	goals.append(_goal("sprinkler", "Place a sprinkler on your farm" if has_sprinkler or marks.has("sprinkled") else "Buy a sprinkler from Azy",
+			int(marks.has("sprinkled")), 1, "stall" if not has_sprinkler else ""))
+	goals.append(_goal("flock", "Raise a flock of 3 sheep", int(state.get("sheep", 0)), 3, "stall"))
 	return goals
 
 

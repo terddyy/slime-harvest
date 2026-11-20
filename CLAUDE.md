@@ -67,6 +67,7 @@ scripts/settings.gd  class Settings: volumes, fullscreen, key bindings + rebind 
 scripts/settings_menu.gd class SettingsMenu: volume sliders, fullscreen, key rebinding (title + pause menu)
 scripts/farm.gd      class Farm (TileMapLayer): tilled/wet soil autotile + crops by cell
 scripts/fences.gd    class Fences: built fences by cell (autotile, HP); slimes chew through them
+scripts/sprinklers.gd class Sprinklers: late-game sprinklers by cell, water their 3x3 each sunrise (tested)
 scripts/crop.gd      class Crop: crop type table (TYPES), growth stage, bites
 scripts/credits.gd   class Credits: credits panel + title footer; developer/course names live here
 scripts/camera_zoom.gd class CameraZoom (Camera2D): follows the player; + / -, Ctrl+wheel, pinch zoom
@@ -85,7 +86,7 @@ scripts/orchard.gd    class Orchard: fruit trees in the orchard area (sapling, g
 scripts/plant_cycle.gd class PlantCycle: what the Seeds tool cycles through, seeds then owned saplings (pure, tested)
 scripts/restoration.gd class Restoration: restoration projects {id, name, cost, unlocks} (pure data, tested)
 scripts/slime.gd     class Slime: small/medium/big; chase crops, eat, take hits, big splits (never hurts the player)
-scripts/animal_types.gd class AnimalTypes: chicken/cow + egg/milk data, buy rules (pure data, tested)
+scripts/animal_types.gd class AnimalTypes: chicken/cow/sheep + egg/milk/wool data, buy rules (pure data, tested)
 scripts/animal.gd    class Animal: wanders in its pen, product bubble, collect()
 scripts/herd.gd      class Herd: spawns/collects/saves the animals (E or click)
 scripts/hud.gd       class Hud (CanvasLayer): labels, hotbar, banner, restoration count, ending screen
@@ -111,6 +112,7 @@ scripts/how_to_play.gd class HowToPlay: goal + controls panel (title and pause m
 scripts/ui_style.gd  class UiStyle: shared menu theme, panels and buttons (static helpers)
 tests/run_tests.gd   headless tests (SceneTree script, no addons)
 tools/gen_audio.py   generates every WAV in assets/audio/ (Python stdlib only)
+tools/gen_late_game_icons.py draws assets/generated/late_game_icons.png (wool + sprinkler, Pillow)
 assets/generated/     our own generated art (logo, icon, prompts); tools/process_generated_art.py downsizes raw renders
 assets/audio/        sfx/*.wav one-shots, music/*.wav loops (generated, don't hand-edit)
 assets/cute_fantasy/ the art pack (do not rename files, paths are referenced in code)

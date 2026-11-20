@@ -9,7 +9,7 @@ signal seed_changed(crop_id: String)
 ## A tool was used on a ripe crop: Main harvests it (same as pressing E on it).
 signal harvest_requested(cell: Vector2i)
 
-enum Tool { HOE, WATER, SEEDS, SWORD, FENCE }
+enum Tool { HOE, WATER, SEEDS, SWORD, FENCE, SPRINKLER }
 
 const SPEED := 70.0
 ## Mouse aiming reaches this many tiles from the player's tile (in each direction).
@@ -51,6 +51,7 @@ const ANIMS := {
 
 var farm: Farm
 var fences: Fences
+var sprinklers: Sprinklers
 ## The player can't leave this rectangle (world pixels). Set by Main.
 var walk_bounds := Rect2(0, 0, 0, 0)
 ## While set (not INF), saves store this spot instead of the real position. The farmhouse
@@ -176,6 +177,8 @@ func aim_cell(world_pos: Vector2) -> Vector2i:
 func tool_cells() -> Array[Vector2i]:
 	if tool == Tool.WATER:
 		return _water_area(target_cell())
+	if tool == Tool.SPRINKLER:
+		return Sprinklers.area_cells(target_cell())  # shows what the sprinkler would water
 	var cells: Array[Vector2i] = [target_cell()]
 	return cells
 
@@ -250,7 +253,7 @@ func equip_sapling(tree_id: String) -> bool:
 	return true
 
 
-## Key, HUD click or wheel picked hotbar slot `index` (0 = hoe ... 4 = fence).
+## Key, HUD click or wheel picked hotbar slot `index` (0 = hoe ... 5 = sprinkler).
 func choose_slot(index: int) -> void:
 	if index == Tool.SEEDS and tool == Tool.SEEDS:
 		_cycle_seed()  # choosing seeds again picks the next seed type
@@ -330,7 +333,7 @@ func _start_action() -> void:
 			_play("water", true)
 		Tool.SWORD:
 			_play("attack", true)
-		Tool.SEEDS, Tool.FENCE:
+		Tool.SEEDS, Tool.FENCE, Tool.SPRINKLER:
 			_apply_action()  # planting and building are instant
 
 
@@ -360,6 +363,8 @@ func _apply_action() -> void:
 			_swing_sword()
 		Tool.FENCE:
 			_use_fence()
+		Tool.SPRINKLER:
+			_use_sprinkler()
 
 
 ## Plants the held sapling on the target tile if it is a free spot in the orchard.
@@ -381,6 +386,18 @@ func _use_fence() -> void:
 		Audio.play_sfx("harvest", 0.1)
 	elif Game.fence_pieces > 0 and fences.place(_action_cell):
 		Game.use_fence()
+		Audio.play_sfx("till", 0.1)
+	else:
+		Audio.play_sfx("error")
+
+
+## Places a sprinkler on the target tile, or picks up the one that is already there.
+func _use_sprinkler() -> void:
+	if sprinklers.remove(_action_cell):
+		Game.return_sprinkler()
+		Audio.play_sfx("harvest", 0.1)
+	elif Game.sprinkler_pieces > 0 and sprinklers.place(_action_cell):
+		Game.use_sprinkler()
 		Audio.play_sfx("till", 0.1)
 	else:
 		Audio.play_sfx("error")

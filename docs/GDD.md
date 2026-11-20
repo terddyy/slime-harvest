@@ -46,7 +46,7 @@ REPEAT, forever (night waves keep growing)
 | Settings (title and pause menu) | Volumes (master/music/effects), fullscreen (not in the browser) and key rebinding, saved in `user://settings.cfg`. Click a key, press the new one; Esc cancels; a key that is already used is swapped with the other action. Esc and Enter can't be bound. Controls in this table are the defaults |
 | + / - keys, Ctrl + mouse wheel, or touchpad pinch | Zoom in / out (`CameraZoom.ZOOM_STEPS`, 0.65x to 2x; kept across restarts) |
 | Mouse wheel, or click a hotbar slot | Next / previous tool, or pick that tool (clicking Seeds again switches seed type) |
-| 1 / 2 / 3 / 4 / 5 | Select Hoe / Watering can / Seeds / Sword / Fence |
+| 1 / 2 / 3 / 4 / 5 / 6 | Select Hoe / Watering can / Seeds / Sword / Fence / Sprinkler |
 | Q, or 3 again | Seeds selected: switch to the next seed type or fruit sapling you have |
 | Mouse | Aim: the highlighted tile follows the mouse, up to `Player.TOOL_REACH` (2) tiles away; further away it picks the nearest reachable tile in that direction |
 | Left click | Use the selected tool on the highlighted tile (the player turns toward it). Clicking a ripe crop with any tool but the sword harvests it. Hold and drag to water/till/plant tile after tile |
@@ -131,6 +131,7 @@ REPEAT, forever (night waves keep growing)
 |---|---|---|---|---|---|---|
 | Chicken | chicken coop | `pen_chickens` | 40g | 4 | egg | 6g |
 | Cow | barn | `pen_cows` | 120g | 3 | milk | 18g |
+| Sheep (late game) | greenhouse | `pen_cows` (shared with the cows) | 200g | 3 | wool | 30g |
 
 - They wander inside their pen. Each gives one product per day: ready on the day after it was bought or
   last collected (`Game.day` past `collected_day`), shown as a bubble over the animal.
@@ -153,6 +154,15 @@ REPEAT, forever (night waves keep growing)
   wood chips. Slimes still go straight for their target (no pathfinding), so a ring of
   fences is a wall they must chew through while you come over with the sword.
 - Fences stay up between nights.
+
+### Sprinklers (late game: `scripts/sprinklers.gd`)
+- Azy sells sprinklers for `Sprinklers.PRICE` (90g) once the greenhouse is restored, i.e. after the farm is saved.
+  They go in the bag (hotbar slot 6, inventory Backpack).
+- Sprinkler tool (6): Space on grass inside the farm area (same rule as a fence) places one; Space on a sprinkler
+  picks it up. The cursor previews the 3x3 area it waters. Nothing can be tilled on a sprinkler tile.
+- Every sunrise (also after sleeping through the night) each sprinkler waters the 3x3 tiles around it
+  (`Sprinklers.water_all()`), so the soil is wet again each morning. Slimes ignore sprinklers.
+- Saved: placed ones in `sprinklers`, the bag in `Game.sprinkler_pieces`.
 
 ### Night defense
 - Enemies spawn at the map edge, away from the player (`scripts/spawner.gd`).
@@ -250,12 +260,13 @@ Recommendations, not requirements: no rewards, nothing is blocked, done goals st
 - `FarmGoals.build(Game.goal_state())` returns the ordered list (pure logic, tested):
   plant and harvest -> sell to Azy -> Well -> Farmhouse -> sleep in the farmhouse -> Chicken coop
   -> buy a chicken -> Barn -> buy a cow -> plant a fruit sapling in the orchard -> build a fence
-  -> Windmill -> Greenhouse -> "Farm saved!". Each goal has a text, progress/target, done flag and
+  -> Windmill -> Greenhouse -> "Farm saved!" -> (late game) buy a sheep -> place a sprinkler -> raise a flock of 3 sheep.
+  Each goal has a text, progress/target, done flag and
   a guide target ("where").
 - Restore goals read "Restore the Well 80/150g" and become "Restore the Well - go to the board!"
   once the gold is there.
 - Firsts that can't be derived from state (harvested, sold, slept, planted a fruit tree, built a
-  fence) are `Game.milestones`, saved in the save file. Older saves are guessed from what is restored.
+  fence, placed a sprinkler) are `Game.milestones`, saved in the save file. Older saves are guessed from what is restored.
 - HUD: one line under "Farm 0/6" shows "Next: <first unfinished goal>" (hidden while the first-day
   tips are up). Click it or press G for the full list (`GoalsList`, shown on the inventory's Goals tab).
 - Guide arrow: once the tips are finished or hidden, the arrow points at the current goal's place
@@ -306,6 +317,7 @@ One map, one crop (carrot), one enemy (green slime), HUD, end screen.
 6. ~~Title screen and pause menu.~~ (built)
 7. ~~Save/load.~~ Done (Sprint 2 F3), see "Saving" below.
 8. ~~Animals (chickens give eggs).~~ Done (Sprint 2 B3): chickens and cows, see "Animals".
+9. ~~Late-game content.~~ Done (Sprint 3 B3): sheep and sprinklers, see "Animals" and "Sprinklers".
 
 ## Art direction
 

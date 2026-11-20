@@ -1,12 +1,11 @@
 class_name Animal
 extends Node2D
-## One chicken or cow. Wanders inside its pen and gives one product per day: it is ready
+## One chicken, cow or sheep. Wanders inside its pen and gives one product per day: it is ready
 ## when Game.day is past the day it was last collected, and shows a bubble until then.
 ## `position` is its feet. Slimes never target animals (they are not in group "enemies").
 
 const FRAME := 32
 const FRAMES_PER_SECOND := 8.0
-const ICONS := preload("res://assets/cute_fantasy/Icons/Outline/Food_Icons_Outline.png")
 
 var type_id := "chicken"
 var pen := Rect2()  # in pixels; feet stay inside
@@ -30,8 +29,9 @@ func _ready() -> void:
 	_sprite.position = -(_data["feet"] as Vector2)
 	add_child(_sprite)
 	var icon := AtlasTexture.new()
-	icon.atlas = ICONS
-	icon.region = Rect2(Vector2(AnimalTypes.PRODUCTS[_data["product"]]["icon"]) * 16, Vector2(16, 16))
+	var product: Dictionary = AnimalTypes.PRODUCTS[_data["product"]]
+	icon.atlas = Hud.product_sheet(product)
+	icon.region = Rect2(Vector2(product["icon"]) * 16, Vector2(16, 16))
 	_bubble.texture = icon
 	_bubble.visible = false
 	_bubble.z_index = 5

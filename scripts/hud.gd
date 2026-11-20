@@ -8,6 +8,8 @@ const TOOL_ICONS := preload("res://assets/cute_fantasy/Icons/Outline/Tool_Icons_
 const FOOD_ICONS := preload("res://assets/cute_fantasy/Icons/Outline/Food_Icons_Outline.png")
 const RESOURCE_ICONS := preload("res://assets/cute_fantasy/Icons/Outline/Resources_Icons_Outline.png")
 const FENCE_ICONS := preload("res://assets/cute_fantasy/Outdoor decoration/Fences.png")
+## 16x16 cells: wool, sprinkler (tools/gen_late_game_icons.py).
+const LATE_ICONS := preload("res://assets/generated/late_game_icons.png")
 ## Hotbar icon per Player.Tool, in enum order: [texture, cell]. The seeds slot changes
 ## to the selected seed type at runtime.
 const HOTBAR_ICONS := [
@@ -16,6 +18,7 @@ const HOTBAR_ICONS := [
 	[FOOD_ICONS, Vector2i(3, 4)],
 	[TOOL_ICONS, Vector2i(4, 0)],
 	[FENCE_ICONS, Vector2i(2, 0)],
+	[LATE_ICONS, Vector2i(1, 0)],
 ]
 const SLOT_SIZE := 20
 const DAY_BAR_COLOR := Color(1.0, 0.82, 0.3)
@@ -42,6 +45,7 @@ var _slots: Array[Panel] = []
 var _seed_icon: TextureRect  # icon in the seeds slot
 var _seed_count := Label.new()  # seeds left of the selected type, in the seeds slot
 var _fence_count := Label.new()  # fence pieces left, in the fence slot
+var _sprinkler_count := Label.new()  # sprinklers in the bag, in the sprinkler slot
 var _player: Player
 var _restore_label := Label.new()  # "Farm 2/6" under the clock
 var _goal_label := Label.new()  # "Next: Restore the Well 80/150g" under it
@@ -49,6 +53,11 @@ var _end_screen := ColorRect.new()
 var _end_label := Label.new()
 var _credits := Credits.new()
 var _keep_button := UiStyle.make_button("Keep playing")
+
+
+## The icon sheet a product's icon cell is in (see AnimalTypes.PRODUCTS).
+static func product_sheet(product: Dictionary) -> Texture2D:
+	return LATE_ICONS if product.get("sheet", "food") == "late" else FOOD_ICONS
 
 
 func _ready() -> void:
@@ -115,6 +124,7 @@ func _refresh_counters() -> void:
 	_seed_label.text = str(Game.total(Game.seeds))
 	_crop_label.text = str(Game.bag_total())
 	_fence_count.text = str(Game.fence_pieces)
+	_sprinkler_count.text = str(Game.sprinkler_pieces)
 	if _player != null:
 		_seed_count.text = str(_player.held_count())
 
@@ -233,6 +243,8 @@ func _build_hotbar() -> void:
 			_add_slot_count(slot, _seed_count)
 		elif i == Player.Tool.FENCE:
 			_add_slot_count(slot, _fence_count)
+		elif i == Player.Tool.SPRINKLER:
+			_add_slot_count(slot, _sprinkler_count)
 	_build_bag_button(start + Vector2(width + 4, 0))
 
 

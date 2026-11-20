@@ -195,7 +195,11 @@ animations, only the first columns are filled. Other files (Chicken_02..18, Roos
   row 2 turn/peck frames (8), row 6 sleeping with "z" (8).
 - Cow (head faces left; feet bottom at y=27, centre x=16): row 0 idle side (2), rows 1-2 idle front/back,
   row 3 walk side (8), rows 4-5 walk front/back (8), row 10 sleeping (8).
-- Product icons used in bubbles and the shop: egg (6,1) and milk bottle (7,0) in `Food_Icons_Outline.png`.
+- Sheep (`Animals/Sheep/Sheep_01.png`, 256x480, head faces left; feet bottom at y=24, centre x=16): row 0 idle side (2),
+  rows 1-2 idle front/back, row 3 walk side (8), rows 4-5 walk front/back, row 11 sleeping. Same grid as the cow.
+  Pig, goat etc. have sheets too but no product icon, so only the sheep is used.
+- Product icons used in bubbles and the shop: egg (6,1) and milk bottle (7,0) in `Food_Icons_Outline.png`;
+  wool is cell 0 of `assets/generated/late_game_icons.png` (below).
 
 ## Generated art (`assets/generated/`)
 
@@ -207,6 +211,9 @@ Each has its prompt next to it (`<name>.prompt.txt`). Raw renders are big, so
   Used on the title screen (`scripts/title.gd`, `LOGO`), shown at 1:1 so it stays crisp under nearest filtering.
 - `icon.png` (256x256): slime + carrot app icon. `config/icon` in `project.godot` and `application/icon`
   in `export_presets.cfg` point at it (replaces the old pack-derived `assets/icon.png`).
+- `late_game_icons.png` (48x16, three 16x16 cells): 0 wool icon, 1 sprinkler icon (black outline + cream halo like the pack icons),
+  2 sprinkler as placed in the world (no halo). The pack has neither item, and image models can't hit a 16 px grid,
+  so `tools/gen_late_game_icons.py` draws them from ASCII masks (no gpt-image render, so no prompt file).
 - No separate title-screen illustration: the pack farm backdrop already fills the screen.
 - Loading screens reuse `logo.png`: desktop boot splash (`boot_splash/image` in `project.godot`, bg color = `UiStyle.OUTLINE_COLOR`),
   web shell `html/shell.html` (logo embedded as base64), and `scenes/loading.tscn` between title and farm.

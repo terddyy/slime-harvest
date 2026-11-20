@@ -1,7 +1,7 @@
 class_name AnimalTypes
 extends RefCounted
 ## Farm animals and what they give, as pure data (no nodes) so tests can check it.
-## Animal ids: chicken, cow. Product ids: egg, milk. Each animal gives one product a day.
+## Animal ids: chicken, cow, sheep. Product ids: egg, milk, wool. Each animal gives one product a day.
 ## Sheet layouts are in docs/ASSETS.md ("Animals").
 
 const TYPES := {
@@ -19,12 +19,22 @@ const TYPES := {
 		"feet": Vector2(16, 27), "faces_left": true, "speed": 10.0,
 		"idle_row": 0, "idle_frames": 2, "walk_row": 3, "walk_frames": 8,
 	},
+	# Late game: needs the last restored building. Shares the cows' pen.
+	"sheep": {
+		"name": "Sheep", "requires": "greenhouse", "pen": &"pen_cows",
+		"price": 200, "max": 3, "product": "wool",
+		"sheet": "res://assets/cute_fantasy/Animals/Sheep/Sheep_01.png",
+		"feet": Vector2(16, 24), "faces_left": true, "speed": 11.0,
+		"idle_row": 0, "idle_frames": 2, "walk_row": 3, "walk_frames": 8,
+	},
 }
 
-## Product id -> name, sell price and icon cell in Icons/Outline/Food_Icons_Outline.png.
+## Product id -> name, sell price and icon cell. The icon is in Icons/Outline/Food_Icons_Outline.png,
+## or in assets/generated/late_game_icons.png when "sheet" is "late" (see Hud.product_sheet).
 const PRODUCTS := {
 	"egg": {"name": "Egg", "sell_price": 6, "icon": Vector2i(6, 1)},
 	"milk": {"name": "Milk", "sell_price": 18, "icon": Vector2i(7, 0)},
+	"wool": {"name": "Wool", "sell_price": 30, "icon": Vector2i(0, 0), "sheet": "late"},
 }
 
 

@@ -39,6 +39,7 @@ var _board := RestorationBoard.new()
 var _announced := {}  # project id -> true once its "you can restore" banner was shown
 var _spawner := Spawner.new()
 var _fences := Fences.new()
+var _sprinklers := Sprinklers.new()
 var _tutorial := Tutorial.new()
 var _feedback := Feedback.new()
 var _farmhouse := Farmhouse.new()
@@ -71,9 +72,13 @@ func _ready() -> void:
 	_fences.farm = farm
 	_fences.fence_parent = entities
 	add_child(_fences)
+	_sprinklers.farm = farm
+	_sprinklers.sprinkler_parent = entities
+	add_child(_sprinklers)
 
 	player.farm = farm
 	player.fences = _fences
+	player.sprinklers = _sprinklers
 	player.orchard = _orchard
 	player.position = Vector2(WorldLayout.PLAYER_START * TILE) + Vector2(TILE / 2.0, TILE / 2.0)
 	player.walk_bounds = Rect2(Vector2(24, 40), Vector2(MAP_SIZE * TILE) - Vector2(48, 56))
@@ -293,6 +298,8 @@ func _update_cursor_and_hint() -> void:
 				can_act = farm.can_plant(cell) and player.held_count() > 0
 		Player.Tool.FENCE:
 			can_act = _fences.has_fence(cell) or (_fences.can_place(cell) and Game.fence_pieces > 0)
+		Player.Tool.SPRINKLER:
+			can_act = _sprinklers.has_sprinkler(cell) or (_sprinklers.can_place(cell) and Game.sprinkler_pieces > 0)
 	cursor.visible = player.tool != Player.Tool.SWORD and not _farmhouse.is_inside
 	cursor.show_cells(player.tool_cells(), can_act)
 
@@ -332,6 +339,10 @@ func _update_cursor_and_hint() -> void:
 		hud.set_hint("Space: pick up fence")
 	elif player.tool == Player.Tool.FENCE and Game.fence_pieces == 0:
 		hud.set_hint("No fences left - buy more at the stall")
+	elif player.tool == Player.Tool.SPRINKLER and _sprinklers.has_sprinkler(cell):
+		hud.set_hint("Space: pick up sprinkler")
+	elif player.tool == Player.Tool.SPRINKLER and Game.sprinkler_pieces == 0:
+		hud.set_hint("No sprinklers left - Azy sells them once the farm is restored")
 	else:
 		hud.set_hint("")
 
@@ -357,6 +368,7 @@ func _on_phase_changed(is_night: bool) -> void:
 	else:
 		_spawner.end_night()
 		_orchard.new_day()
+		_sprinklers.water_all()  # every sunrise, also after sleeping through the night
 		hud.show_banner("Day %d - the slimes retreat" % Game.day)
 		SaveGame.save()
 
@@ -482,6 +494,7 @@ func _register_save_systems() -> void:
 	SaveGame.register("game", Game)
 	SaveGame.register("farm", farm)
 	SaveGame.register("fences", _fences)
+	SaveGame.register("sprinklers", _sprinklers)  # after "farm": placing checks the soil rules
 	SaveGame.register("herd", _herd)  # after "game": it reads Game.animals
 	SaveGame.register("orchard", _orchard)
 	SaveGame.register("player", player)
