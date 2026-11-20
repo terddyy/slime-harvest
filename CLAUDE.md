@@ -56,13 +56,15 @@ scenes/title.tscn    start scene (run/main_scene): title screen
 scenes/main.tscn     game scene: Ground, Farm, Cursor, Entities(y-sorted: Player), NightTint, HUD, PauseMenu
 scripts/save_game.gd  autoload "SaveGame": save file (user://save.json), systems register to_save/from_save
 scripts/save_util.gd class SaveUtil: safe readers for save data
-scripts/game.gd      autoload "Game": clock (day/night), gold, seeds/crops per type, fence pieces,
+scripts/game.gd      autoload "Game": settings, clock (day/night), gold, seeds/crops per type, fence pieces,
                      upgrade levels + prices, end of run, input map, scene changes
 scripts/world_layout.gd class WorldLayout: the 80x50 map as data (areas, ponds, paths, trees, rocks; tested)
 scripts/ground_builder.gd class GroundBuilder: paints grass, dirt paths and ponds from WorldLayout
 scripts/main.gd      builds the world from WorldLayout (trees, rocks, stall), creates the Spawner, Fences, Shop, Tutorial
                      and Feedback, tint, E key (shop/harvest)
-scripts/audio.gd     autoload "Audio": sound effects (voice pool) + looping music with crossfade
+scripts/audio.gd     autoload "Audio": sound effects (voice pool) + looping music with crossfade; buses Master/Music/SFX
+scripts/settings.gd  class Settings: volumes, fullscreen, key bindings + rebind rules, user://settings.cfg (pure, tested); Game.settings
+scripts/settings_menu.gd class SettingsMenu: volume sliders, fullscreen, key rebinding (title + pause menu)
 scripts/farm.gd      class Farm (TileMapLayer): tilled/wet soil autotile + crops by cell
 scripts/fences.gd    class Fences: built fences by cell (autotile, HP); slimes chew through them
 scripts/crop.gd      class Crop: crop type table (TYPES), growth stage, bites

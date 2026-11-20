@@ -12,6 +12,10 @@ const MUSIC_VOLUME_DB := -12.0  # music sits under the effects
 const SILENT_DB := -60.0
 const SFX_VOICES := 8  # how many effects can play at the same time
 const CROSSFADE_TIME := 1.0
+## Bus names; Music and SFX are created in code and send to Master.
+const MASTER_BUS := "Master"
+const MUSIC_BUS := "Music"
+const SFX_BUS := "SFX"
 
 var _sfx_players: Array[AudioStreamPlayer] = []
 var _next_sfx := 0
@@ -26,16 +30,39 @@ var _cache := {}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_add_bus(MUSIC_BUS)
+	_add_bus(SFX_BUS)
+	apply_settings(Game.settings)
 	for i in SFX_VOICES:
 		var player := AudioStreamPlayer.new()
+		player.bus = SFX_BUS
 		player.volume_db = SFX_VOLUME_DB
 		add_child(player)
 		_sfx_players.append(player)
 	for i in 2:
 		var player := AudioStreamPlayer.new()
+		player.bus = MUSIC_BUS
 		player.volume_db = SILENT_DB
 		add_child(player)
 		_music_players.append(player)
+
+
+## Sets the three bus volumes from the settings (0.0 is muted).
+func apply_settings(settings: Settings) -> void:
+	for bus_name: String in [MASTER_BUS, MUSIC_BUS, SFX_BUS]:
+		var linear := settings.volume(bus_name.to_lower())
+		var index := AudioServer.get_bus_index(bus_name)
+		AudioServer.set_bus_mute(index, linear <= 0.0)
+		AudioServer.set_bus_volume_db(index, linear_to_db(maxf(linear, 0.0001)))
+
+
+func _add_bus(bus_name: String) -> void:
+	if AudioServer.get_bus_index(bus_name) != -1:
+		return
+	AudioServer.add_bus()
+	var index := AudioServer.bus_count - 1
+	AudioServer.set_bus_name(index, bus_name)
+	AudioServer.set_bus_send(index, MASTER_BUS)
 
 
 ## Plays a one-shot effect. pitch_variation 0.1 means a random pitch between 0.9x and 1.1x,

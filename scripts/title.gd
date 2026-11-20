@@ -24,6 +24,7 @@ const LOGO_TOP := 6.0
 var _scenery := Node2D.new()
 var _menu := Control.new()
 var _how_to_play := HowToPlay.new()
+var _settings_menu := SettingsMenu.new()
 var _credits := Credits.new()
 var _footer := UiStyle.make_label(Credits.footer_text(), UiStyle.TEXT_SIZE)
 var _new_button := UiStyle.make_button("New Game")
@@ -72,14 +73,16 @@ func _build_ui() -> void:
 	root.add_child(_menu)
 	var column := UiStyle.make_centered_panel(_menu)
 	var how_button := UiStyle.make_button("How to Play")
+	var settings_button := UiStyle.make_button("Settings")
 	var credits_button := UiStyle.make_button("Credits")
 	var quit_button := UiStyle.make_button("Quit")
-	for button in [_continue_button, _new_button, how_button, credits_button, quit_button]:
+	for button in [_continue_button, _new_button, how_button, settings_button, credits_button, quit_button]:
 		column.add_child(button)
 	_continue_button.visible = SaveGame.has_save()
 	_continue_button.pressed.connect(_continue_game)
 	_new_button.pressed.connect(_on_new_game_pressed)
 	how_button.pressed.connect(_open_how_to_play)
+	settings_button.pressed.connect(_open_settings)
 	credits_button.pressed.connect(_open_credits)
 	quit_button.pressed.connect(get_tree().quit)
 	quit_button.visible = not OS.has_feature("web")  # a browser tab can't quit; you close the tab
@@ -93,6 +96,8 @@ func _build_ui() -> void:
 
 	_how_to_play.closed.connect(_close_how_to_play.bind(how_button))
 	root.add_child(_how_to_play)
+	_settings_menu.closed.connect(_close_how_to_play.bind(settings_button))
+	root.add_child(_settings_menu)
 	_credits.closed.connect(_close_how_to_play.bind(credits_button))
 	root.add_child(_credits)
 	_build_confirm(root)
@@ -151,6 +156,12 @@ func _open_how_to_play() -> void:
 	_menu.visible = false
 	_footer.visible = false
 	_how_to_play.open()
+
+
+func _open_settings() -> void:
+	_menu.visible = false
+	_footer.visible = false
+	_settings_menu.open()
 
 
 func _open_credits() -> void:

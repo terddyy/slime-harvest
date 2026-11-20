@@ -11,6 +11,7 @@ func _initialize() -> void:
 	await process_frame  # let autoloads (Game) finish _ready
 	_test_economy()
 	_test_loading_tips()
+	_test_settings()
 	_test_crop_data()
 	_test_inventory_per_type()
 	_test_upgrades()
@@ -1042,6 +1043,70 @@ func _test_loading_tips() -> void:
 	_check(LoadingTips.percent([]) == 0, "no progress data means 0 percent")
 	_check(LoadingTips.percent([0.456]) == 46, "progress 0.456 is 46 percent")
 	_check(LoadingTips.percent([3.0]) == 100, "progress is clamped to 100")
+
+
+func _test_settings() -> void:
+	var settings := Settings.new()
+	_check(settings.master == 1.0 and settings.music == 1.0 and settings.sfx == 1.0, "volumes start at full")
+	_check(settings.key_for("interact") == KEY_E, "E interacts by default")
+	_check(settings.key_for("interact", 1) == -1, "interact has no second key")
+	settings.set_volume("music", 3.0)
+	_check(settings.music == 1.0, "volume is clamped to 1")
+	settings.set_volume("sfx", -1.0)
+	_check(settings.sfx == 0.0, "volume is clamped to 0")
+
+	var free := settings.rebind("interact", 0, KEY_F)
+	_check(free["ok"] and settings.key_for("interact") == KEY_F, "a free key can be bound")
+	_check(settings.owner_of(KEY_E).is_empty(), "the old key is free again")
+	var swapped := settings.rebind("cycle_seed", 0, KEY_F)
+	_check(swapped["ok"] and settings.key_for("cycle_seed") == KEY_F, "the clashing key moves over")
+	_check(settings.key_for("interact") == KEY_Q, "the other action gets the old key (swap)")
+	_check(str(swapped["message"]).contains("swapped"), "a swap says so")
+	_check(settings.rebind("interact", 0, KEY_ESCAPE)["ok"] == false, "Esc is reserved")
+	_check(settings.rebind("interact", 0, KEY_ENTER)["ok"] == false, "Enter is reserved")
+	_check(settings.rebind("pause", 0, KEY_P)["ok"] == false, "pause can't be rebound")
+	_check(settings.rebind("interact", 3, KEY_P)["ok"] == false, "a missing slot is refused")
+	_check(settings.rebind("move_up", 1, KEY_W)["ok"] and settings.key_for("move_up", 0) == KEY_UP, "swap works inside one action")
+	var seen := {}
+	var unique := true
+	for action: String in settings.bindings:
+		for key: int in settings.bindings[action]:
+			unique = unique and not seen.has(key)
+			seen[key] = true
+	_check(unique, "no key is bound twice after rebinding")
+
+	settings.reset_bindings()
+	_check(settings.key_for("interact") == KEY_E and settings.key_for("move_up", 0) == KEY_W, "reset restores the defaults")
+	_check(Settings.key_label(KEY_E) == "E" and Settings.key_label(KEY_ESCAPE) == "Esc", "key labels")
+	_check(Settings.key_label(-1) == "-", "no key shows a dash")
+	_check(settings.fill_keys("{interact} / {move}") == "E / W A S D", "how to play uses the current keys")
+
+	var path := "user://settings_test.cfg"
+	settings.master = 0.5
+	settings.music = 0.3
+	settings.sfx = 0.0
+	settings.fullscreen = true
+	settings.rebind("use_tool", 0, KEY_X)
+	_check(settings.save_file(path), "settings are written")
+	var loaded := Settings.new()
+	loaded.load_file(path)
+	_check(is_equal_approx(loaded.master, 0.5) and is_equal_approx(loaded.music, 0.3) and loaded.sfx == 0.0, "volumes load back")
+	_check(loaded.fullscreen, "fullscreen loads back")
+	_check(loaded.key_for("use_tool", 0) == KEY_X and loaded.key_for("use_tool", 1) == KEY_J, "bindings load back")
+	var missing := Settings.new()
+	missing.load_file("user://does_not_exist.cfg")
+	_check(missing.master == 1.0 and missing.key_for("interact") == KEY_E, "a missing file leaves the defaults")
+
+	var bad := ConfigFile.new()
+	bad.set_value("audio", "master", "loud")
+	bad.set_value("keys", "interact", [KEY_W])  # clashes with move_up
+	bad.set_value("keys", "tool_1", "one")
+	bad.save(path)
+	var damaged := Settings.new()
+	damaged.load_file(path)
+	_check(damaged.master == 1.0, "a bad volume falls back to full")
+	_check(damaged.key_for("interact") == KEY_E and damaged.key_for("tool_1") == KEY_1, "bad or clashing keys fall back to the defaults")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
 func _goal_by_id(goals: Array[Dictionary], id: String) -> Dictionary:

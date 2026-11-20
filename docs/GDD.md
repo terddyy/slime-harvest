@@ -43,6 +43,7 @@ REPEAT, forever (night waves keep growing)
 | Key | Action |
 |---|---|
 | WASD / arrows | Move |
+| Settings (title and pause menu) | Volumes (master/music/effects), fullscreen (not in the browser) and key rebinding, saved in `user://settings.cfg`. Click a key, press the new one; Esc cancels; a key that is already used is swapped with the other action. Esc and Enter can't be bound. Controls in this table are the defaults |
 | + / - keys, Ctrl + mouse wheel, or touchpad pinch | Zoom in / out (`CameraZoom.ZOOM_STEPS`, 0.65x to 2x; kept across restarts) |
 | Mouse wheel, or click a hotbar slot | Next / previous tool, or pick that tool (clicking Seeds again switches seed type) |
 | 1 / 2 / 3 / 4 / 5 | Select Hoe / Watering can / Seeds / Sword / Fence |
@@ -56,7 +57,7 @@ REPEAT, forever (night waves keep growing)
 | Shop: arrows + Enter, or mouse | Pick and buy an item |
 | Shop / board: Esc or E | Close it |
 | Board: arrows + Enter, or mouse | Restore the selected building |
-| Esc | Pause menu (Resume, Restart, How to Play, Quit to Title); the music pauses too and resumes from the same spot |
+| Esc | Pause menu (Resume, Restart, How to Play, Settings, Quit to Title); the music pauses too and resumes from the same spot |
 | F1 | Hide the first-day tips |
 | Tab, or click the Bag button right of the hotbar | Open / close the inventory (pauses; slides up above the hotbar) |
 | Inventory: Left / Right or click a tab | Switch between Backpack, Storage and Goals; click seeds or fences in the Backpack to equip them; Esc closes |

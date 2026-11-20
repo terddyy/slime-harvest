@@ -5,23 +5,26 @@ extends Control
 
 signal closed
 
-## [keys, action]. Keep in sync with the Controls table in docs/GDD.md.
+## [keys, action]. {name} is replaced by the current main key of that action (settings can
+## change it); {move} is the four move keys. Keep in sync with the Controls table in docs/GDD.md.
 const CONTROLS := [
-	["WASD / arrows", "Move"],
-	["1 / 2 / 3 / 4 / 5", "Hoe / Watering can / Seeds / Sword / Fence"],
+	["{move} / arrows", "Move"],
+	["{tool_1} / {tool_2} / {tool_3} / {tool_4} / {tool_5}", "Hoe / Watering can / Seeds / Sword / Fence"],
 	["Mouse", "Point at a tile (up to 2 tiles) to aim; wheel or hotbar click: tool"],
-	["Left click / Space", "Use the tool (hold + drag: many tiles); ripe crop: harvest"],
-	["Q, or 3 again", "Seeds selected: next seed / sapling"],
-	["E / right click", "Harvest, collect, talk to Azy / Gayle, use the board, door, bed"],
-	["Shop / board", "Arrows + Enter or mouse to buy or restore; Esc or E to close"],
-	["Esc / F1", "Pause / hide the first-day tips"],
-	["Tab / G", "Inventory (backpack, storage, goals) / farm goals"],
-	["+ / - or Ctrl+wheel", "Zoom in / out (touchpad: pinch)"],
-	["N", "Debug: skip to the next day/night phase"],
+	["Left click / {use_tool}", "Use the tool (hold + drag: many tiles); ripe crop: harvest"],
+	["{cycle_seed}, or {tool_3} again", "Seeds selected: next seed / sapling"],
+	["{interact} / right click", "Harvest, collect, talk to Azy / Gayle, use the board, door, bed"],
+	["Shop / board", "Arrows + Enter or mouse to buy or restore; Esc or {interact} to close"],
+	["Esc / {hide_tips}", "Pause / hide the first-day tips"],
+	["{inventory} / {goals}", "Inventory (backpack, storage, goals) / farm goals"],
+	["{zoom_in} / {zoom_out} or Ctrl+wheel", "Zoom in / out (touchpad: pinch)"],
+	["{skip_phase}", "Debug: skip to the next day/night phase"],
 ]
 const KEY_COLOR := Color(1.0, 0.85, 0.4)
 
 var _back_button := UiStyle.make_button("Back")
+var _key_labels: Array[Label] = []  # the two columns, rewritten on open() in case keys changed
+var _action_labels: Array[Label] = []
 
 
 func _ready() -> void:
@@ -45,10 +48,12 @@ func _ready() -> void:
 	grid.add_theme_constant_override("h_separation", 10)
 	grid.add_theme_constant_override("v_separation", 1)
 	for row: Array in CONTROLS:
-		var key := UiStyle.make_label(row[0], UiStyle.TEXT_SIZE, KEY_COLOR)
+		var key := UiStyle.make_label("", UiStyle.TEXT_SIZE, KEY_COLOR)
 		key.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		grid.add_child(key)
-		var action := UiStyle.make_label(row[1])
+		_key_labels.append(key)
+		var action := UiStyle.make_label("")
+		_action_labels.append(action)
 		action.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		grid.add_child(action)
 	column.add_child(grid)
@@ -59,6 +64,9 @@ func _ready() -> void:
 
 
 func open() -> void:
+	for i in CONTROLS.size():
+		_key_labels[i].text = Game.settings.fill_keys(CONTROLS[i][0])
+		_action_labels[i].text = Game.settings.fill_keys(CONTROLS[i][1])
 	visible = true
 	_back_button.grab_focus()
 

@@ -39,30 +39,7 @@ const TITLE_SCENE := "res://scenes/title.tscn"
 const MAIN_SCENE := "res://scenes/main.tscn"
 const LOADING_SCENE := "res://scenes/loading.tscn"
 
-## Action name -> keys. Registered in code so the bindings are easy to read in one place.
-const KEY_BINDINGS := {
-	"move_up": [KEY_W, KEY_UP],
-	"move_down": [KEY_S, KEY_DOWN],
-	"move_left": [KEY_A, KEY_LEFT],
-	"move_right": [KEY_D, KEY_RIGHT],
-	"use_tool": [KEY_SPACE, KEY_J],
-	"interact": [KEY_E],
-	"cycle_seed": [KEY_Q],
-	"tool_1": [KEY_1],
-	"tool_2": [KEY_2],
-	"tool_3": [KEY_3],
-	"tool_4": [KEY_4],
-	"tool_5": [KEY_5],
-	"restart": [KEY_R],
-	"skip_phase": [KEY_N],
-	"zoom_in": [KEY_EQUAL, KEY_KP_ADD],
-	"zoom_out": [KEY_MINUS, KEY_KP_SUBTRACT],
-	"pause": [KEY_ESCAPE],
-	"to_title": [KEY_T],
-	"hide_tips": [KEY_F1],
-	"goals": [KEY_G],
-	"inventory": [KEY_TAB],
-}
+var settings := Settings.new()  # volumes, fullscreen, key bindings (user://settings.cfg)
 
 var day := 1
 var is_night := false
@@ -81,7 +58,9 @@ var milestones := {}  # firsts for the farm goals (FarmGoals.MILESTONES) -> true
 
 
 func _ready() -> void:
-	_register_inputs()
+	settings.load_file()  # before the input map is built
+	apply_key_bindings()
+	apply_display()
 
 
 func reset() -> void:
@@ -465,12 +444,14 @@ func _next_phase() -> void:
 	phase_changed.emit(is_night)
 
 
-func _register_inputs() -> void:
-	for action: String in KEY_BINDINGS:
+## Builds (or rebuilds after a rebind) the input actions from settings.bindings.
+func apply_key_bindings() -> void:
+	for action: String in settings.bindings:
 		if InputMap.has_action(action):
-			continue
-		InputMap.add_action(action)
-		for key: int in KEY_BINDINGS[action]:
+			InputMap.action_erase_events(action)
+		else:
+			InputMap.add_action(action)
+		for key: int in settings.bindings[action]:
 			var event := InputEventKey.new()
 			event.physical_keycode = key as Key
 			InputMap.action_add_event(action, event)
@@ -480,3 +461,12 @@ func _register_inputs() -> void:
 	var right_click := InputEventMouseButton.new()
 	right_click.button_index = MOUSE_BUTTON_RIGHT
 	InputMap.action_add_event("interact", right_click)
+
+
+## Fullscreen from the settings (a browser tab has no window mode to change).
+func apply_display() -> void:
+	if OS.has_feature("web"):
+		return
+	var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if settings.fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
+	if DisplayServer.window_get_mode() != mode:
+		DisplayServer.window_set_mode(mode)

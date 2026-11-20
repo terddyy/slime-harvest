@@ -9,8 +9,10 @@ const DIM_COLOR := Color(0, 0, 0, 0.5)
 var _dim := ColorRect.new()
 var _menu := Control.new()
 var _how_to_play := HowToPlay.new()
+var _settings_menu := SettingsMenu.new()
 var _resume_button := UiStyle.make_button("Resume")
 var _how_button := UiStyle.make_button("How to Play")
+var _settings_button := UiStyle.make_button("Settings")
 
 
 func _ready() -> void:
@@ -33,15 +35,18 @@ func _ready() -> void:
 	column.add_child(UiStyle.make_label("Paused", 12, UiStyle.HIGHLIGHT))
 	var restart_button := UiStyle.make_button("Restart")
 	var title_button := UiStyle.make_button("Quit to Title")
-	for button in [_resume_button, restart_button, _how_button, title_button]:
+	for button in [_resume_button, restart_button, _how_button, _settings_button, title_button]:
 		column.add_child(button)
 	_resume_button.pressed.connect(close)
 	restart_button.pressed.connect(Game.start_new_game)
 	_how_button.pressed.connect(_open_how_to_play)
+	_settings_button.pressed.connect(_open_settings)
 	title_button.pressed.connect(_quit_to_title)
 
 	_how_to_play.closed.connect(_close_how_to_play)
 	root.add_child(_how_to_play)
+	_settings_menu.closed.connect(_close_settings)
+	root.add_child(_settings_menu)
 
 	Game.farm_restored.connect(_on_farm_restored)
 	_set_shown(false)
@@ -75,6 +80,7 @@ func close() -> void:
 	if not is_open():
 		return
 	_how_to_play.visible = false
+	_settings_menu.close()
 	_set_shown(false)
 	Audio.set_music_paused(false)
 	get_tree().paused = false
@@ -105,9 +111,20 @@ func _close_how_to_play() -> void:
 	_how_button.grab_focus()
 
 
+func _open_settings() -> void:
+	_menu.visible = false
+	_settings_menu.open()
+
+
+func _close_settings() -> void:
+	_menu.visible = true
+	_settings_button.grab_focus()
+
+
 ## The farm can be saved while the menu is open: the ending screen wins.
 ## The HUD keeps the tree paused, so only hide the menu here.
 func _on_farm_restored() -> void:
 	_how_to_play.visible = false
+	_settings_menu.close()
 	_set_shown(false)
 	Audio.set_music_paused(false)
