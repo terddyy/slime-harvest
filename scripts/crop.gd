@@ -9,20 +9,33 @@ const FIRST_STAGE_COLUMN := 2  # columns 2..5 are the growth stages
 const STAGES := 4
 const BITES_TO_EAT := 3
 
-## Crop id -> data. Keys are in shop/hotbar order.
+## Crop id -> data, in shop/hotbar order (cheapest seed first).
 ##   row: band in Crops.png (see docs/ASSETS.md)
 ##   grow_ticks: farm ticks the soil must stay wet before each growth stage (bigger = slower)
 ##   seed_price / sell_price: gold
 ##   icon / seed_icon: cells in Icons/Outline/Food_Icons_Outline.png
+##   requires (optional): id of a restoration project that must be done before the seeds can be bought
 const TYPES := {
+	"radish": {"name": "Radish", "row": 18, "grow_ticks": 1, "seed_price": 3, "sell_price": 8,
+		"icon": Vector2i(2, 8), "seed_icon": Vector2i(3, 8)},
 	"carrot": {"name": "Carrot", "row": 2, "grow_ticks": 1, "seed_price": 5, "sell_price": 15,
 		"icon": Vector2i(2, 4), "seed_icon": Vector2i(3, 4)},
+	"potato": {"name": "Potato", "row": 16, "grow_ticks": 2, "seed_price": 10, "sell_price": 28,
+		"icon": Vector2i(0, 10), "seed_icon": Vector2i(1, 10)},
 	"tomato": {"name": "Tomato", "row": 1, "grow_ticks": 2, "seed_price": 15, "sell_price": 40,
 		"icon": Vector2i(0, 4), "seed_icon": Vector2i(1, 4)},
+	"cabbage": {"name": "Cabbage", "row": 7, "grow_ticks": 3, "seed_price": 20, "sell_price": 56,
+		"icon": Vector2i(2, 5), "seed_icon": Vector2i(3, 5)},
 	"corn": {"name": "Corn", "row": 4, "grow_ticks": 3, "seed_price": 25, "sell_price": 70,
 		"icon": Vector2i(0, 7), "seed_icon": Vector2i(1, 7)},
+	"eggplant": {"name": "Eggplant", "row": 3, "grow_ticks": 4, "seed_price": 32, "sell_price": 90,
+		"icon": Vector2i(4, 7), "seed_icon": Vector2i(5, 7)},
 	"pumpkin": {"name": "Pumpkin", "row": 5, "grow_ticks": 4, "seed_price": 40, "sell_price": 120,
 		"icon": Vector2i(0, 6), "seed_icon": Vector2i(1, 6)},
+	"strawberry": {"name": "Strawberry", "row": 17, "grow_ticks": 5, "seed_price": 55, "sell_price": 170,
+		"icon": Vector2i(0, 11), "seed_icon": Vector2i(1, 11), "requires": "greenhouse"},
+	"chili": {"name": "Chili", "row": 9, "grow_ticks": 6, "seed_price": 75, "sell_price": 240,
+		"icon": Vector2i(4, 6), "seed_icon": Vector2i(5, 6), "requires": "greenhouse"},
 }
 
 var cell := Vector2i.ZERO
@@ -42,6 +55,12 @@ func _ready() -> void:
 	_sprite.position = Vector2(-8, -30)
 	add_child(_sprite)
 	_update_sprite()
+
+
+## Can this crop's seeds be bought? `restored` is Game.restored (project id -> true).
+static func is_unlocked(crop_id: String, restored: Dictionary) -> bool:
+	var needed: String = Crop.TYPES[crop_id].get("requires", "")
+	return needed == "" or restored.has(needed)
 
 
 func is_ripe() -> bool:

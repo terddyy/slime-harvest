@@ -95,10 +95,18 @@ REPEAT, forever (night waves keep growing)
 
 | Crop | Seed | Sells for | grow_ticks | Grow time | Profit |
 |---|---|---|---|---|---|
+| Radish | 3g | 8g | 1 | 24 s | 5g |
 | Carrot | 5g | 15g | 1 | 24 s | 10g |
+| Potato | 10g | 28g | 2 | 48 s | 18g |
 | Tomato | 15g | 40g | 2 | 48 s | 25g |
+| Cabbage | 20g | 56g | 3 | 72 s | 36g |
 | Corn | 25g | 70g | 3 | 72 s | 45g |
+| Eggplant | 32g | 90g | 4 | 96 s (more than a day) | 58g |
 | Pumpkin | 40g | 120g | 4 | 96 s (more than a day) | 80g |
+| Strawberry* | 55g | 170g | 5 | 120 s (more than a day) | 115g |
+| Chili* | 75g | 240g | 6 | 144 s (more than a day) | 165g |
+
+\* Greenhouse crops: their seeds can only be bought once the greenhouse is restored (`requires` in `Crop.TYPES`; locked rows are dimmed in the shop).
 
   Slow crops pay more per watering but cost more up front and are more likely to be
   standing in the field when the slimes come.
@@ -289,8 +297,7 @@ One map, one crop (carrot), one enemy (green slime), HUD, end screen.
 
 ### Ideas for later (pick in order, one at a time)
 1. ~~Sound effects and music.~~ — done: procedural SFX + day/night music (`tools/gen_audio.py`).
-2. ~~More crops with different grow times and prices~~ — done: carrot, tomato, corn,
-   pumpkin (Crops.png has 22 crops if more are wanted).
+2. ~~More crops with different grow times and prices~~ — done: 10 crops (see the table in Rules; Sprint 3 B2).
 3. ~~Upgrades at the stall~~ — done: shop with sword, watering can (hearts and heal removed in Sprint 2).
 4. ~~Fences the player can build to slow slimes (Outdoor decoration/Fences.png).~~ — done:
    fence tool (5), bundles at the stall, slimes chew through them.

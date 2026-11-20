@@ -87,7 +87,7 @@ func _test_economy() -> void:
 
 func _test_crop_data() -> void:
 	var ids := Crop.TYPES.keys()
-	_check(ids == ["carrot", "tomato", "corn", "pumpkin"], "four crop types in shop order")
+	_check(ids.size() == 10 and ids[0] == "radish" and ids[-1] == "chili", "ten crop types in shop order")
 	var previous: Dictionary = {}
 	for crop_id: String in ids:
 		var data: Dictionary = Crop.TYPES[crop_id]
@@ -98,8 +98,19 @@ func _test_crop_data() -> void:
 		_check(int(data["row"]) * Crop.BAND.y < Crop.TEXTURE.get_height(), "%s row is inside Crops.png" % crop_id)
 		if not previous.is_empty():
 			_check(data["seed_price"] > previous["seed_price"], "%s seeds cost more than the previous crop" % crop_id)
-			_check(data["grow_ticks"] > previous["grow_ticks"], "%s grows slower than the previous crop" % crop_id)
+			_check(data["grow_ticks"] >= previous["grow_ticks"], "%s grows no faster than the previous crop" % crop_id)
+			_check(data["sell_price"] > previous["sell_price"], "%s sells for more than the previous crop" % crop_id)
+		var needed: String = data.get("requires", "")
+		_check(needed == "" or not Restoration.project(needed).is_empty(), "%s requirement is a real project" % crop_id)
 		previous = data
+	_check(not Crop.is_unlocked("chili", {}) and Crop.is_unlocked("chili", {"greenhouse": true}), "chili needs the greenhouse")
+	_check(Crop.is_unlocked("carrot", {}), "carrot is open from the start")
+	var game := _game()
+	game.gold = 1000
+	_check(not game.buy_seed("strawberry") and game.gold == 1000, "locked seeds can't be bought")
+	game.restored["greenhouse"] = true
+	_check(game.buy_seed("strawberry"), "seeds can be bought once the building is restored")
+	game.reset()
 
 
 func _test_inventory_per_type() -> void:

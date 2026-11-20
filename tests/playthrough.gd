@@ -146,7 +146,7 @@ func _shop() -> void:
 			break
 	var best_crop := ""
 	for crop_id: String in Crop.TYPES:
-		if int(Crop.TYPES[crop_id]["seed_price"]) * 4 <= Game.gold - GOLD_RESERVE:
+		if Crop.is_unlocked(crop_id, Game.restored) and int(Crop.TYPES[crop_id]["seed_price"]) * 4 <= Game.gold - GOLD_RESERVE:
 			best_crop = crop_id
 	var wanted: int = _field_cells().size() - _farm.crop_count()
 	while best_crop != "" and Game.total(Game.seeds) < wanted and Game.gold - GOLD_RESERVE >= int(Crop.TYPES[best_crop]["seed_price"]) and Game.buy_seed(best_crop):

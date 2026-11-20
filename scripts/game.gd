@@ -182,7 +182,7 @@ func buy_animal(animal_id: String) -> bool:
 
 func buy_seed(crop_id: String) -> bool:
 	var price: int = Crop.TYPES[crop_id]["seed_price"]
-	if gold < price:
+	if gold < price or not Crop.is_unlocked(crop_id, restored):
 		return false
 	gold -= price
 	seeds[crop_id] = seed_count(crop_id) + 1

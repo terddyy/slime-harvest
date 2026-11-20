@@ -71,6 +71,8 @@ Crop index: 0 wheat, 1 tomato, 2 carrot, 3 turnip/eggplant, 4 corn, 5 pumpkin, 6
 7 cabbage, 8 cucumber, 9 chili, 10 red pepper, 11 orange pepper, 12 green pepper,
 13 broccoli, 14 sunflower, 15 onion, 16 potato, 17 strawberry, 18 radish, 19 garlic,
 20 leek, 21 grapes. (Names are best guesses from the art.)
+In game (B2): radish 18, carrot 2, potato 16, tomato 1, cabbage 7, corn 4, eggplant 3, pumpkin 5,
+strawberry 17, chili 9 (see `Crop.TYPES`).
 
 ## Enemies (`Enemies/`)
 
@@ -168,7 +170,8 @@ All in `Buildings/Buildings/` unless noted; the `_Red_Red` colour variants are u
   6 watering can, 7 fishing rod, 8 lantern/hammer, 9 torch.
 - `Food_Icons_Outline.png` 8x12 cells. Produce is in even columns with its seed bag in the
   next column. Used in game: tomato (0,4) + seeds (1,4), carrot (2,4) + seeds (3,4),
-  pumpkin (0,6) + seeds (1,6), corn (0,7) + seeds (1,7).
+  pumpkin (0,6) + seeds (1,6), corn (0,7) + seeds (1,7), radish (2,8) + (3,8), potato (0,10) + (1,10),
+  cabbage (2,5) + (3,5), eggplant (4,7) + (5,7), chili (4,6) + (5,6), strawberry (0,11) + (1,11).
   Other crops in rows 3-11 (wheat (0,3), grapes (0,5)...); rows 0-2 are meat, mushrooms, fish.
 - `Resources_Icons_Outline.png` 6x6 cells. Gold bar (2,2). Rows 0-3: ore, crystal and bar per colour; rows 4-5: wood, bone, etc.
 - No heart or coin icon in the pack.

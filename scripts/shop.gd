@@ -5,7 +5,7 @@ extends CanvasLayer
 ## Esc or E closes it. Prices and upgrade rules live in Game and Crop.TYPES.
 
 const SCREEN := Vector2(480, 270)
-const ROW_SIZE := Vector2(172, 20)
+const ROW_SIZE := Vector2(172, 17)
 const TOOL_ICONS := preload("res://assets/cute_fantasy/Icons/Outline/Tool_Icons_Outline.png")
 const FOOD_ICONS := preload("res://assets/cute_fantasy/Icons/Outline/Food_Icons_Outline.png")
 const RESOURCE_ICONS := preload("res://assets/cute_fantasy/Icons/Outline/Resources_Icons_Outline.png")
@@ -78,8 +78,18 @@ func _buy_seed(crop_id: String) -> void:
 		_info_label.text = "Bought 1 %s seed." % Crop.TYPES[crop_id]["name"]
 		Audio.play_sfx("buy")
 	else:
-		_info_label.text = "Not enough gold."
+		_info_label.text = _seed_block_text(crop_id)
 		Audio.play_sfx("error")
+
+
+func _seed_block_text(crop_id: String) -> String:
+	if not Crop.is_unlocked(crop_id, Game.restored):
+		return "Needs the %s." % _requirement_name(crop_id)
+	return "Not enough gold."
+
+
+func _requirement_name(crop_id: String) -> String:
+	return String(Restoration.project(Crop.TYPES[crop_id]["requires"])["name"]).to_lower()
 
 
 func _buy_upgrade(upgrade_id: String) -> void:
@@ -135,6 +145,8 @@ func _describe(item: String) -> String:
 	if Crop.TYPES.has(item):
 		var data: Dictionary = Crop.TYPES[item]
 		var seconds := int(data["grow_ticks"] * Farm.GROW_INTERVAL)
+		if not Crop.is_unlocked(item, Game.restored):
+			return "%s: sells for %dg. Needs the %s first." % [data["name"], data["sell_price"], _requirement_name(item)]
 		return "%s: sells for %dg. Needs %d s of wet soil per stage." % [data["name"], data["sell_price"], seconds]
 	if UPGRADES.has(item):
 		var level := Game.upgrade_level(item)
@@ -173,7 +185,8 @@ func _refresh() -> void:
 	for crop_id: String in Crop.TYPES:
 		var data: Dictionary = Crop.TYPES[crop_id]
 		var seed_price: int = data["seed_price"]
-		_set_row(crop_id, "%s seeds x%d" % [data["name"], Game.seed_count(crop_id)], "%dg" % seed_price, Game.gold >= seed_price)
+		_set_row(crop_id, "%s seeds x%d" % [data["name"], Game.seed_count(crop_id)], "%dg" % seed_price,
+			Game.gold >= seed_price and Crop.is_unlocked(crop_id, Game.restored))
 	for upgrade_id: String in UPGRADES:
 		var price := Game.upgrade_price(upgrade_id)
 		var label := "%s (%s)" % [UPGRADES[upgrade_id][0], _upgrade_effect(upgrade_id, Game.upgrade_level(upgrade_id))]
@@ -305,6 +318,9 @@ func _make_theme() -> Theme:
 		theme.set_color(state, "Button", TEXT_COLOR)
 	var normal := _box(Color(0.14, 0.1, 0.07, 0.9), BORDER_COLOR, 1, 2)
 	var focus := _box(Color(0.32, 0.24, 0.15, 0.95), GOLD_COLOR, 1, 2)
+	for style in [normal, focus]:
+		style.content_margin_top = 0  # keeps rows at ROW_SIZE so the long seed list fits the screen
+		style.content_margin_bottom = 0
 	theme.set_stylebox("normal", "Button", normal)
 	theme.set_stylebox("hover", "Button", focus)
 	theme.set_stylebox("pressed", "Button", focus)
