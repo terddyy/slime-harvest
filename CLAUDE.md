@@ -70,6 +70,8 @@ scripts/fences.gd    class Fences: built fences by cell (autotile, HP); slimes c
 scripts/sprinklers.gd class Sprinklers: late-game sprinklers by cell, water their 3x3 each sunrise (tested)
 scripts/crop.gd      class Crop: crop type table (TYPES), growth stage, bites
 scripts/credits.gd   class Credits: credits panel + title footer; developer/course names live here
+scripts/credits_roll.gd class CreditsRoll (CanvasLayer): scrolling end credits (text from Credits.roll_lines())
+scripts/story_panels.gd class StoryPanels (CanvasLayer): illustrated intro / ending panels, click/E/Space next, Esc skips
 scripts/camera_zoom.gd class CameraZoom (Camera2D): follows the player; + / -, Ctrl+wheel, pinch zoom
 scripts/player.gd    class Player: movement, layered sprite animation, tools, seed choice (no health)
 scripts/farmhouse.gd class Farmhouse: farmhouse door + interior room (far off-map), bed sleeps to morning

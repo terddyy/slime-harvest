@@ -12,6 +12,7 @@ func _initialize() -> void:
 	_test_economy()
 	_test_loading_tips()
 	_test_settings()
+	_test_story()
 	_test_crop_data()
 	_test_inventory_per_type()
 	_test_upgrades()
@@ -1198,3 +1199,14 @@ func _goal_by_id(goals: Array[Dictionary], id: String) -> Dictionary:
 		if goal["id"] == id:
 			return goal
 	return {}
+
+
+func _test_story() -> void:
+	for name: String in ["INTRO", "ENDING"]:
+		var panels: Array[Dictionary] = StoryPanels.INTRO if name == "INTRO" else StoryPanels.ENDING
+		_check(panels.size() >= 3 and panels.size() <= 4, "%s has 3-4 panels" % name)
+		for panel in panels:
+			_check(ResourceLoader.exists(panel["image"]), "%s picture exists: %s" % [name, panel["image"]])
+			_check(str(panel["text"]).length() > 20 and str(panel["text"]).length() <= 160, "%s text fits the box" % name)
+	var lines := Credits.roll_lines()
+	_check(lines.has(Credits.DEVELOPER) and lines.has(Credits.WEBSITE), "credits roll names the developer")

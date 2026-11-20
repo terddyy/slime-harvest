@@ -127,14 +127,24 @@ func _ready() -> void:
 			_tutorial.visible = false
 			hud.show_banner("Welcome back - Day %d" % Game.day)
 		else:
-			hud.show_banner("Day 1 - plant carrots before night!")
+			_start_new_day_one()
 	else:
-		hud.show_banner("Day 1 - plant carrots before night!")
+		_start_new_day_one()
 	_announce_restorable(true)
 	Game.stats_changed.connect(_announce_restorable.bind(false))
 	_update_goal_target()
 	Game.stats_changed.connect(_update_goal_target)
 	Audio.play_music("day")
+
+
+## A new run: the story intro first (once, see Game.intro_seen), then the first-day banner.
+func _start_new_day_one() -> void:
+	var banner := func() -> void: hud.show_banner("Day 1 - plant carrots before night!")
+	if Game.intro_seen:
+		banner.call()
+		return
+	Game.intro_seen = true
+	hud.play_intro(banner)
 
 
 ## One banner per project, the first time its price is within reach. `silent` only records

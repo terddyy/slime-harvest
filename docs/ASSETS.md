@@ -214,6 +214,9 @@ Each has its prompt next to it (`<name>.prompt.txt`). Raw renders are big, so
 - `late_game_icons.png` (48x16, three 16x16 cells): 0 wool icon, 1 sprinkler icon (black outline + cream halo like the pack icons),
   2 sprinkler as placed in the world (no halo). The pack has neither item, and image models can't hit a 16 px grid,
   so `tools/gen_late_game_icons.py` draws them from ASCII masks (no gpt-image render, so no prompt file).
+- `story_intro_1..3.png`, `story_ending_1..3.png` (320x180): story panels for `StoryPanels`. Same prompt preamble for all six
+  (pixel art, Imogen brown hair / white-brown shirt / blue pants, Gayle ginger hair / pink shirt / purple pants).
+  `tools/process_story_art.py <raw folder>` downscales the raw 16:9 renders (Lanczos).
 - No separate title-screen illustration: the pack farm backdrop already fills the screen.
 - Loading screens reuse `logo.png`: desktop boot splash (`boot_splash/image` in `project.godot`, bg color = `UiStyle.OUTLINE_COLOR`),
   web shell `html/shell.html` (logo embedded as base64), and `scenes/loading.tscn` between title and farm.

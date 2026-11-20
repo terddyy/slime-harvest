@@ -45,6 +45,7 @@ func _ready() -> void:
 	SaveGame.path = "user://test_save_playthrough.json"  # dawn autosaves must not touch the real save
 	SaveGame.delete()
 	Game.reset()
+	Game.intro_seen = true  # no story panels over the bot
 	_main = load("res://scenes/main.tscn").instantiate()
 	add_child(_main)
 	_farm = _main.get_node("Farm")

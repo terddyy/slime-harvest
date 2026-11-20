@@ -56,6 +56,7 @@ var restored := {}  # project id -> true, for every repaired building
 var animals := {}  # animal id -> how many you own (see AnimalTypes)
 var products_in_bag := {}  # product id (egg, milk) -> count, sold with the crops
 var milestones := {}  # firsts for the farm goals (FarmGoals.MILESTONES) -> true
+var intro_seen := false  # the story intro was shown for this run (saved, so Continue never repeats it)
 
 
 func _ready() -> void:
@@ -80,6 +81,7 @@ func reset() -> void:
 	animals = {}
 	products_in_bag = {}
 	milestones = {}
+	intro_seen = false
 
 
 func _process(delta: float) -> void:
@@ -393,6 +395,7 @@ func to_save() -> Dictionary:
 		"animals": animals.duplicate(),
 		"products_in_bag": products_in_bag.duplicate(),
 		"milestones": milestones.keys(),
+		"intro_seen": intro_seen,
 	}
 
 
@@ -420,6 +423,7 @@ func from_save(data: Dictionary) -> void:
 		animals[id] = mini(animals[id], int(AnimalTypes.TYPES[id]["max"]))
 	products_in_bag = SaveUtil.counts(data.get("products_in_bag"), AnimalTypes.product_ids())
 	_load_milestones(data)
+	intro_seen = bool(data.get("intro_seen", true))  # saves from before the intro existed skip it
 	stats_changed.emit()
 
 

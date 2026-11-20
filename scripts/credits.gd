@@ -36,6 +36,17 @@ static func footer_text() -> String:
 %s, %s" % [DEVELOPER, WEBSITE, PROJECT, COURSE]
 
 
+## The text of the scrolling end credits (CreditsRoll): thanks, then each role and who did it.
+static func roll_lines() -> Array[String]:
+	var lines: Array[String] = [GAME_TITLE, "", "Thank you for restoring the farm.", "", ""]
+	for row: Array in LINES:
+		lines.append(row[0])
+		lines.append(row[1])
+		lines.append("")
+	lines.append_array(["", INTRO, "", WEBSITE, "", "", "Imogen and Gayle are home."])
+	return lines
+
+
 func _ready() -> void:
 	size = UiStyle.SCREEN
 	visible = false

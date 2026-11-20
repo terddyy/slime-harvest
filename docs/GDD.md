@@ -25,8 +25,12 @@ REPEAT, forever (night waves keep growing)
 - Goal: restore every project in `Restoration.PROJECTS` (`scripts/restoration.gd`: id, name,
   cost, what it unlocks) by paying its gold cost with `Game.restore(id)`. The HUD shows "Farm n/N".
   Each repair shows a banner (`Game.project_restored`). The last one emits `Game.farm_restored`:
-  the game pauses on "The farm is saved!" with Credits / Keep playing / Quit to Title, and play
-  continues afterwards. Costs (150/300/450/800/1000/1400 = 4100 gold) were balanced in P1 with the
+  the game pauses and plays three ending panels (`StoryPanels.ENDING`), then the scrolling credits
+  (`CreditsRoll`), then "The farm is saved!" with Credits / Keep playing / Quit to Title, and play
+  continues afterwards. Click / E / Space moves on, Esc skips a step.
+- Story intro: a new game starts with three illustrated panels (`StoryPanels.INTRO`: why Imogen and Gayle came to the
+  run-down family farm), then the first-day banner and tutorial. Esc skips. `Game.intro_seen` is saved, so Continue never
+  repeats it (older saves count as seen); Restart from the pause menu is a new game and shows it again. Costs (150/300/450/800/1000/1400 = 4100 gold) were balanced in P1 with the
   bot playthrough: it saves the farm in roughly 13-21 days (average ~17), the goal for a normal player is 15-20.
 - Buildings: each project is a building on its plot (`scripts/building_data.gd`, `building.gd`, `buildings.gd`).
   Not restored = sign with name and price, rubble and a faint blue ghost of the building. Restored = the full

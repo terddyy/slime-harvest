@@ -19,6 +19,7 @@ func _ready() -> void:
 	SaveGame.path = "user://test_save_aim.json"  # never touch the real save
 	SaveGame.delete()
 	Game.reset()
+	Game.intro_seen = true  # no story panels over the test
 	_main = load("res://scenes/main.tscn").instantiate()
 	add_child(_main)
 	await get_tree().process_frame

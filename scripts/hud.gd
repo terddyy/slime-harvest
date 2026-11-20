@@ -52,6 +52,8 @@ var _goal_label := Label.new()  # "Next: Restore the Well 80/150g" under it
 var _end_screen := ColorRect.new()
 var _end_label := Label.new()
 var _credits := Credits.new()
+var _story := StoryPanels.new()
+var _credits_roll := CreditsRoll.new()
 var _keep_button := UiStyle.make_button("Keep playing")
 
 
@@ -71,6 +73,8 @@ func _ready() -> void:
 	_build_hotbar()
 	_build_messages()
 	_build_end_screen()
+	add_child(_story)
+	add_child(_credits_roll)
 	Game.stats_changed.connect(_refresh_counters)
 	Game.farm_restored.connect(_on_farm_restored)
 	Game.project_restored.connect(_on_project_restored)
@@ -148,10 +152,25 @@ func _on_project_restored(id: String) -> void:
 	show_banner("%s restored!" % Restoration.project(id)["name"])
 
 
-## The last building is done: pause on the ending screen. "Keep playing" carries on.
+## New run: the intro panels, then `then` runs (the first-day banner). Pauses while they show.
+func play_intro(then: Callable) -> void:
+	_story.finished.connect(func() -> void:
+		get_tree().paused = false
+		then.call(), CONNECT_ONE_SHOT)
+	_story.play(StoryPanels.INTRO)
+
+
+## The last building is done: ending panels, scrolling credits, then the ending screen.
+## "Keep playing" carries on.
 func _on_farm_restored() -> void:
 	get_tree().paused = true
 	Audio.play_sfx("win")
+	_story.finished.connect(_credits_roll.play, CONNECT_ONE_SHOT)
+	_credits_roll.finished.connect(_show_ending_screen, CONNECT_ONE_SHOT)
+	_story.play(StoryPanels.ENDING)
+
+
+func _show_ending_screen() -> void:
 	_end_label.text = "The farm is saved!\n\nImogen and Gayle have their home back.\nDay %d, %d gold" % [Game.day, Game.gold]
 	_end_screen.visible = true
 	_keep_button.grab_focus()
