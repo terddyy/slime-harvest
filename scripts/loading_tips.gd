@@ -14,6 +14,7 @@ const TIPS: Array[String] = [
 	"Big slimes split in two when they die.",
 	"Restoring buildings is how you win. Check the board sign.",
 	"Fruit trees take a few days to grow, plant them early.",
+	"Once the greenhouse is restored, Azy sells sheep, sprinklers and two new seeds.",
 ]
 
 

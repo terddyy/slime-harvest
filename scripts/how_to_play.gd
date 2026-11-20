@@ -34,12 +34,9 @@ func _ready() -> void:
 	column.add_child(UiStyle.make_label("How to Play", 12, KEY_COLOR))
 
 	var goal := UiStyle.make_label(
-			"Imogen and Gayle are fixing up the family farm. Till, plant and water crops,
-"
-			+ "sell them to Azy at the stall, and fight off the slimes that eat them at night.
-"
-			+ "Earn gold to restore every building at the board by the farmhouse.
-"
+			"Imogen and Gayle are fixing up the family farm. Till, plant and water crops,\n"
+			+ "sell them to Azy at the stall, and fight off the slimes that eat them at night.\n"
+			+ "Earn gold to restore every building at the board by the farmhouse.\n"
 			+ "Gayle helps; sleeping in the farmhouse skips the night. The game autosaves.")
 	column.add_child(goal)
 
