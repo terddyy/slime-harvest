@@ -57,6 +57,10 @@ var animals := {}  # animal id -> how many you own (see AnimalTypes)
 var products_in_bag := {}  # product id (egg, milk) -> count, sold with the crops
 var milestones := {}  # firsts for the farm goals (FarmGoals.MILESTONES) -> true
 var intro_seen := false  # the story intro was shown for this run (saved, so Continue never repeats it)
+## A menu (shop, board, bag, Esc menu) is open. Solo it pauses the world; online it does not (see set_ui_open).
+var ui_open := false
+## Online joiner only: Game.callv() on the host. Set by CoopWorld; buying and restoring are requests (see _asks_host).
+var remote_call := Callable()
 
 
 func _ready() -> void:
@@ -87,7 +91,61 @@ func reset() -> void:
 func _process(delta: float) -> void:
 	time_left -= delta
 	if time_left <= 0.0:
-		_next_phase()
+		if _follows_host():
+			time_left = 0.0  # wait for the host's clock (sync_clock) to start the next phase
+		else:
+			_next_phase()
+
+
+## A menu opened or closed. Solo, the world stops while it is open; online the other players
+## keep playing, so the tree is not paused (the player only stands still, see Player).
+func set_ui_open(open: bool) -> void:
+	ui_open = open
+	get_tree().paused = open and not Net.is_online()
+
+
+## True while a menu has the game paused, or is open online (where the tree keeps running).
+func is_paused() -> bool:
+	return get_tree().paused or ui_open
+
+
+## Online joiner: the host's clock decides when the day ends.
+func _follows_host() -> bool:
+	return Net.is_online() and not Net.is_host()
+
+
+## Joiner: takes the host's day, phase and time. Emits phase_changed when the phase or the day moved on.
+func sync_clock(new_day: int, new_is_night: bool, new_time_left: float) -> void:
+	var changed := new_is_night != is_night or new_day != day
+	day = maxi(1, new_day)
+	is_night = new_is_night
+	time_left = clampf(new_time_left, 0.0, NIGHT_LENGTH if is_night else DAY_LENGTH)
+	if changed:
+		phase_changed.emit(is_night)
+
+
+## Joiner: the host's gold, bags, upgrades, buildings... (to_save() from the host). The clock stays as it is.
+## Buildings restored since last time are announced like a normal restoration.
+func apply_shared(data: Dictionary) -> void:
+	var clock := [day, is_night, time_left]
+	var before := restored.duplicate()
+	from_save(data)
+	day = clock[0]
+	is_night = clock[1]
+	time_left = clock[2]
+	for id: String in restored:
+		if not before.has(id):
+			project_restored.emit(id)
+	if all_restored() and before.size() < restored.size():
+		farm_restored.emit()
+
+
+## Joiner: forwards a purchase to the host (which owns the shared gold and bags). True when it was sent.
+func _asks_host(method: String, args: Array = []) -> bool:
+	if not remote_call.is_valid():
+		return false
+	remote_call.call(method, args)
+	return true
 
 
 func skip_phase() -> void:
@@ -152,6 +210,8 @@ func bag_value() -> int:
 ## Sells every crop and animal product in the bag. Returns the gold earned.
 func sell_crops() -> int:
 	var earned := bag_value()
+	if earned > 0 and _asks_host("sell_crops"):
+		return earned
 	gold += earned
 	crops_in_bag = {}
 	products_in_bag = {}
@@ -177,6 +237,8 @@ func add_product(product_id: String) -> void:
 func buy_animal(animal_id: String) -> bool:
 	if AnimalTypes.block_reason(animal_id, restored, animal_count(animal_id), gold) != "":
 		return false
+	if _asks_host("buy_animal", [animal_id]):
+		return true
 	gold -= int(AnimalTypes.TYPES[animal_id]["price"])
 	animals[animal_id] = animal_count(animal_id) + 1
 	stats_changed.emit()
@@ -188,6 +250,8 @@ func buy_seed(crop_id: String) -> bool:
 	var price: int = Crop.TYPES[crop_id]["seed_price"]
 	if gold < price or not Crop.is_unlocked(crop_id, restored):
 		return false
+	if _asks_host("buy_seed", [crop_id]):
+		return true
 	gold -= price
 	seeds[crop_id] = seed_count(crop_id) + 1
 	stats_changed.emit()
@@ -195,8 +259,12 @@ func buy_seed(crop_id: String) -> bool:
 
 
 func buy_sapling(tree_id: String) -> bool:
-	if not spend(int(Orchard.TYPES[tree_id]["sapling_price"])):
+	var price: int = Orchard.TYPES[tree_id]["sapling_price"]
+	if gold < price:
 		return false
+	if _asks_host("buy_sapling", [tree_id]):
+		return true
+	spend(price)
 	saplings[tree_id] = sapling_count(tree_id) + 1
 	stats_changed.emit()
 	return true
@@ -247,6 +315,8 @@ func buy_upgrade(upgrade_id: String) -> bool:
 	var price := upgrade_price(upgrade_id)
 	if price < 0 or gold < price:
 		return false
+	if _asks_host("buy_upgrade", [upgrade_id]):
+		return true
 	gold -= price
 	upgrades[upgrade_id] = upgrade_level(upgrade_id) + 1
 	stats_changed.emit()
@@ -266,6 +336,8 @@ func spend(amount: int) -> bool:
 func buy_fences() -> bool:
 	if gold < FENCE_BUNDLE_PRICE:
 		return false
+	if _asks_host("buy_fences"):
+		return true
 	gold -= FENCE_BUNDLE_PRICE
 	fence_pieces += FENCE_BUNDLE
 	stats_changed.emit()
@@ -292,6 +364,8 @@ func return_fence() -> void:
 func buy_sprinkler() -> bool:
 	if Sprinklers.block_reason(restored, gold) != "":
 		return false
+	if _asks_host("buy_sprinkler"):
+		return true
 	gold -= Sprinklers.PRICE
 	sprinkler_pieces += 1
 	stats_changed.emit()
@@ -370,8 +444,11 @@ func all_restored() -> bool:
 ## Pays for a project. False if the id is unknown, it is already done or you can't afford it.
 func restore(id: String) -> bool:
 	var project := Restoration.project(id)
-	if project.is_empty() or is_restored(id) or not spend(int(project["cost"])):
+	if project.is_empty() or is_restored(id) or gold < int(project["cost"]):
 		return false
+	if _asks_host("restore", [id]):
+		return true
+	spend(int(project["cost"]))
 	restored[id] = true
 	project_restored.emit(id)
 	if all_restored():
@@ -450,6 +527,7 @@ func start_new_game() -> void:
 
 ## Title / restart -> farm, through the loading screen (it loads MAIN_SCENE on a thread).
 func enter_farm() -> void:
+	ui_open = false
 	get_tree().paused = false
 	get_tree().change_scene_to_file(LOADING_SCENE)
 
@@ -457,6 +535,7 @@ func enter_farm() -> void:
 func go_to_title() -> void:
 	Net.leave()  # no-op when playing solo; the host closes the room, a joiner walks out
 	reset()
+	ui_open = false
 	get_tree().paused = false
 	get_tree().change_scene_to_file(TITLE_SCENE)
 

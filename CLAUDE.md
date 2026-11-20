@@ -30,6 +30,8 @@ GODOT="<path to Godot_v4.7.2-stable_win64_console.exe>"   # the real path is in 
   `-- --relay=ws://127.0.0.1:9080` (default is the production URL, so always pass it when testing).
 - Net test (starts a relay and two joiner processes itself, exit 1 on failure; ~15 s):
   `"$GODOT" --headless --path . res://tests/net_test.tscn`
+- Co-op world sync (host + joiner process play till -> plant -> harvest -> shop -> sword -> bed, then compare worlds):
+  `"$GODOT" --headless --path . res://tests/coop_world_test.tscn`
 - Aim regression test (real input events, exit 1 on failure):
   `"$GODOT" --headless --path . res://tests/aim_test.tscn`
 - Restore-everything playthrough by a bot (farms, keeps animals + orchard, buys projects in order;
@@ -66,6 +68,9 @@ scripts/lobby.gd     class Lobby: title "Play Together" panel (host with a room 
 scripts/coop_session.gd class CoopSession: online part of Main: farm snapshot to joiners, position sync, join/leave banners
 scripts/remote_farmer.gd class RemoteFarmer: another player's farmer (tinted shirt, name tag, interpolated)
 scripts/coop_rules.gd class CoopRules: farmer colours, joiner start spot, snapshot filter, state checks (pure, tested)
+scripts/coop_world.gd class CoopWorld: online world sync: joiner requests (tools, harvest, buying) run on the host, changed cells/gold/clock go to joiners, sleep needs everyone
+scripts/coop_entities.gd class CoopEntities: host sends slimes, animals and Gayle about 10x/s; joiners show puppet copies
+scripts/world_actions.gd class WorldActions: what tools, E and harvesting do to the farm (shared by the player and the host handling a joiner's request)
 server/relay.gd     room relay (headless Godot script, standalone, not exported): rooms, codes, forwards packets
 scripts/game.gd      autoload "Game": settings, clock (day/night), gold, seeds/crops per type, fence pieces,
                      upgrade levels + prices, end of run, input map, scene changes

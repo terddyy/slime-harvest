@@ -5,6 +5,9 @@ extends Node
 ## Fences. Slimes ignore them (they are never enemies or obstacles); only the hoe is blocked on
 ## their tile (farm.blocked). No Game/Audio calls in here, so the tests can run it headless.
 
+## A sprinkler was placed or picked up. Co-op sends the new state to the joiners.
+signal changed(cell: Vector2i)
+
 const TILE := 16
 const PRICE := 90
 ## Restoration project that has to be repaired before Azy sells sprinklers (the last one).
@@ -57,6 +60,19 @@ func can_place(cell: Vector2i) -> bool:
 func place(cell: Vector2i) -> bool:
 	if not can_place(cell):
 		return false
+	_add(cell)
+	return true
+
+
+## Joiner: makes `cell` match the host's (a sprinkler there or not).
+func apply_cell(cell: Vector2i, present: bool) -> void:
+	if present and not has_sprinkler(cell):
+		_add(cell)
+	elif not present:
+		remove(cell)
+
+
+func _add(cell: Vector2i) -> void:
 	var sprite := Sprite2D.new()
 	sprite.texture = TEXTURE
 	sprite.region_enabled = true
@@ -67,7 +83,7 @@ func place(cell: Vector2i) -> bool:
 	sprinkler_parent.add_child(sprite)
 	_sprites[cell] = sprite
 	farm.blocked[cell] = true
-	return true
+	changed.emit(cell)
 
 
 ## Picks the sprinkler back up. Returns false if there was none.
@@ -77,6 +93,7 @@ func remove(cell: Vector2i) -> bool:
 	(_sprites[cell] as Sprite2D).queue_free()
 	_sprites.erase(cell)
 	farm.blocked.erase(cell)
+	changed.emit(cell)
 	return true
 
 

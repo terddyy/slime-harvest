@@ -34,7 +34,7 @@ func _process(_delta: float) -> void:
 
 
 func _draw_guide() -> void:
-	if tutorial == null or get_tree().paused:
+	if tutorial == null or Game.is_paused():
 		return
 	var target := tutorial.guide_target()
 	if target.is_empty() and Tutorial.is_finished and not Game.is_night and goal_target.is_valid():

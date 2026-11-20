@@ -305,7 +305,7 @@ func _on_bag_input(event: InputEvent, button: Panel) -> void:
 ## Left click on a hotbar slot selects that tool. The slot keeps the click,
 ## so the player doesn't also use the tool.
 func _on_slot_input(event: InputEvent, index: int) -> void:
-	if get_tree().paused or _player == null:
+	if Game.is_paused() or _player == null:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_player.choose_slot(index)
@@ -313,7 +313,7 @@ func _on_slot_input(event: InputEvent, index: int) -> void:
 
 
 func _on_goal_input(event: InputEvent) -> void:
-	if get_tree().paused:
+	if Game.is_paused():
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_goal_label.accept_event()

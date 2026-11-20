@@ -9,6 +9,8 @@ signal watered(cell: Vector2i)
 signal planted(cell: Vector2i)
 signal crop_ripened(cell: Vector2i)
 signal harvested(cell: Vector2i)
+## Anything about this cell changed (soil, water, crop, growth). Co-op sends the new state to the joiners.
+signal cell_changed(cell: Vector2i)
 
 const TILE := 16
 const GROW_INTERVAL := 8.0
@@ -58,6 +60,7 @@ func grow_all() -> void:
 		if crop.tick(_wet[cell]):
 			_wet[cell] = false
 			_paint(cell)
+			cell_changed.emit(cell)
 			if crop.is_ripe():
 				crop_ripened.emit(cell)
 
@@ -103,6 +106,7 @@ func till(cell: Vector2i) -> bool:
 		if is_tilled(cell + dir):
 			_paint(cell + dir)
 	tilled.emit(cell)
+	cell_changed.emit(cell)
 	return true
 
 
@@ -120,6 +124,7 @@ func untill(cell: Vector2i) -> bool:
 		if is_tilled(cell + dir):
 			_paint(cell + dir)
 	untilled.emit(cell)
+	cell_changed.emit(cell)
 	return true
 
 
@@ -129,6 +134,7 @@ func water(cell: Vector2i) -> bool:
 	_wet[cell] = true
 	_paint(cell)
 	watered.emit(cell)
+	cell_changed.emit(cell)
 	return true
 
 
@@ -137,6 +143,7 @@ func plant(cell: Vector2i, crop_id := "carrot") -> bool:
 		return false
 	_spawn_crop(cell, crop_id)
 	planted.emit(cell)
+	cell_changed.emit(cell)
 	return true
 
 
@@ -155,6 +162,43 @@ func remove_crop(cell: Vector2i) -> void:
 		return
 	_crops.erase(cell)
 	crop.queue_free()
+	cell_changed.emit(cell)
+
+
+## One cell for co-op: [] for grass, else [wet (0 or 1), crop id or "", crop stage].
+func cell_state(cell: Vector2i) -> Array:
+	if not is_tilled(cell):
+		return []
+	var crop := get_crop(cell)
+	return [1 if _wet[cell] else 0, crop.crop_id if crop != null else "", crop.stage if crop != null else 0]
+
+
+## Joiner: makes `cell` look like the host's `state` (see cell_state). Uses the normal
+## till/water/plant calls, so the particles and sounds of a change show up here too.
+func apply_cell_state(cell: Vector2i, state: Array) -> void:
+	if not bounds.has_point(cell):
+		return
+	if state.is_empty():
+		remove_crop(cell)
+		untill(cell)
+		return
+	if state.size() < 3 or not (is_tilled(cell) or till(cell)):
+		return
+	if int(state[0]) == 1:
+		water(cell)
+	elif is_wet(cell):
+		_wet[cell] = false
+		_paint(cell)
+	var crop_id := str(state[1])
+	var crop := get_crop(cell)
+	if crop != null and crop.crop_id != crop_id:
+		remove_crop(cell)
+		crop = null
+	if crop_id != "" and Crop.TYPES.has(crop_id):
+		if crop == null:
+			plant(cell, crop_id)
+			crop = get_crop(cell)
+		crop.set_stage(int(state[2]))
 
 
 ## Cells that have a crop (for the sleep rule).

@@ -13,6 +13,14 @@ const PEN_MARGIN := 8.0  # keeps feet away from the pen edge, in pixels
 
 var entities: Node2D
 var player: Node2D
+## Co-op joiner: the animals are copies of the host's (see apply_states).
+var puppet := false
+## Co-op joiner: the CoopWorld a click on an animal is sent to ("collect that one").
+var remote_world: CoopWorld
+## What the last successful collect gave and where (co-op tells the joiner who asked).
+var last_product := ""
+var last_position := Vector2.ZERO
+
 
 var _animals: Array[Animal] = []
 
@@ -46,6 +54,7 @@ func collect_near(pos: Vector2) -> bool:
 func spawn(type_id: String, at := Vector2.INF, last_collected := Game.day) -> Animal:
 	var animal := Animal.new()
 	animal.type_id = type_id
+	animal.puppet = puppet
 	animal.pen = pen_rect(type_id)
 	animal.collected_day = last_collected
 	animal.position = _clamp_to_pen(at, animal.pen) if at != Vector2.INF else _random_in(animal.pen)
@@ -58,6 +67,32 @@ func spawn(type_id: String, at := Vector2.INF, last_collected := Game.day) -> An
 static func pen_rect(type_id: String) -> Rect2:
 	var area := WorldLayout.area(AnimalTypes.TYPES[type_id]["pen"])
 	return Rect2(Vector2(area.position) * 16.0, Vector2(area.size) * 16.0).grow(-PEN_MARGIN)
+
+
+## Co-op host: every animal as Animal.to_state(), in order.
+func to_states() -> Array:
+	var list: Array = []
+	for animal in _animals:
+		list.append(animal.to_state())
+	return list
+
+
+## Co-op joiner: the host's animals. Missing ones are made, extra ones removed.
+func apply_states(states: Array) -> void:
+	while _animals.size() > states.size():
+		_animals.pop_back().queue_free()
+	for i in states.size():
+		var state: Variant = states[i]
+		if not state is Array or state.size() < 6 or not AnimalTypes.TYPES.has(str(state[0])):
+			continue
+		var at := Vector2(float(state[1]), float(state[2]))
+		if i < _animals.size() and _animals[i].type_id != str(state[0]):
+			_animals[i].queue_free()
+			_animals[i] = spawn(str(state[0]), at)
+			_animals.pop_back()
+		elif i >= _animals.size():
+			spawn(str(state[0]), at)
+		_animals[i].show_state(at, state[3] == true, state[4] == true, state[5] == true)
 
 
 func to_save() -> Dictionary:
@@ -92,9 +127,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if player == null or not entities.is_inside_tree():
 		return
-	var animal := animal_ready_near(entities.get_global_mouse_position(), CLICK_RANGE)
-	if animal != null and animal.body_center().distance_to(player.global_position) <= CLICK_PLAYER_RANGE and _collect(animal):
+	var mouse := entities.get_global_mouse_position()
+	if remote_world != null:  # a joiner only asks; the host collects
+		var wanted := animal_ready_near(mouse, CLICK_RANGE)
+		if wanted != null and wanted.body_center().distance_to(player.global_position) <= CLICK_PLAYER_RANGE:
+			remote_world.send_collect_click(mouse)
+			get_viewport().set_input_as_handled()
+		return
+	if collect_click(mouse, player.global_position):
 		get_viewport().set_input_as_handled()
+
+
+## A click at `mouse` collects from the ready animal there if the farmer at `farmer_pos` is close enough.
+func collect_click(mouse: Vector2, farmer_pos: Vector2) -> bool:
+	var animal := animal_ready_near(mouse, CLICK_RANGE)
+	return animal != null and animal.body_center().distance_to(farmer_pos) <= CLICK_PLAYER_RANGE and _collect(animal)
 
 
 func _collect(animal: Animal) -> bool:
@@ -102,6 +149,8 @@ func _collect(animal: Animal) -> bool:
 	if product_id == "":
 		return false
 	Game.add_product(product_id)
+	last_product = product_id
+	last_position = animal.body_center()
 	Audio.play_sfx("harvest", 0.05)
 	collected.emit(animal.body_center(), product_id)
 	return true

@@ -43,13 +43,19 @@ const FENCE_BITE_INTERVAL := 1.0
 const HURT_TIME := 0.25
 const KNOCKBACK_SPEED := 140.0
 const SPLIT_COUNT := 2
+const PUPPET_SMOOTHING := 12.0  # how quickly a co-op copy catches up with the host's slime
 
 var farm: Farm
 ## Fences block the way; the slime chews through them. Can be null (no fences).
 var fences: Fences
 var size := Size.MEDIUM
 var hp := 0
+## Co-op joiner: this is a copy of the host's slime. It thinks and fights nothing; it only
+## glides to where the host says it is (show_state) and plays the host's animation.
+var puppet := false
 
+var _puppet_target := Vector2.ZERO
+var _puppet_anim := "idle"
 var _stats: Dictionary
 var _sprite := Sprite2D.new()
 var _anim := "move"
@@ -78,6 +84,11 @@ func _process(delta: float) -> void:
 		if _anim_time >= _stats["die_frames"] / ANIMS["die"][2] + 0.1:
 			queue_free()
 		return
+	if puppet:
+		global_position = global_position.lerp(_puppet_target, minf(1.0, delta * PUPPET_SMOOTHING))
+		_set_anim(_puppet_anim)
+		_update_frame()
+		return
 
 	_knockback_step(delta)
 	_knockback = _knockback.move_toward(Vector2.ZERO, 400.0 * delta)
@@ -95,7 +106,7 @@ func body_center() -> Vector2:
 
 
 func take_hit(damage: int, from: Vector2) -> void:
-	if _dying:
+	if _dying or puppet:
 		return
 	hp -= damage
 	Audio.play_sfx("slime_hit", 0.15)
@@ -109,6 +120,22 @@ func take_hit(damage: int, from: Vector2) -> void:
 		if size == Size.BIG:
 			split.emit(global_position)
 		_start_dying()
+
+
+## Co-op host: what the joiners need to draw this slime: [id, size, x, y, animation, facing left].
+func to_state() -> Array:
+	return [get_instance_id(), int(size), global_position.x, global_position.y, _anim, _sprite.flip_h]
+
+
+## Co-op joiner: where the host's slime is and what it is doing.
+func show_state(at: Vector2, anim: String, flip: bool) -> void:
+	if not puppet:
+		return
+	if _puppet_target == Vector2.ZERO:
+		global_position = at  # first report: appear in place
+	_puppet_target = at
+	_puppet_anim = anim if ANIMS.has(anim) and anim != "die" else "idle"
+	_sprite.flip_h = flip
 
 
 ## Pushes the slime away from `from` and stuns it briefly.

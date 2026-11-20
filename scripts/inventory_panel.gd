@@ -58,10 +58,10 @@ func open(page := Page.BACKPACK) -> void:
 	if _is_open:
 		show_page(page)
 		return
-	if get_tree().paused:
+	if Game.is_paused():
 		return
 	_is_open = true
-	get_tree().paused = true
+	Game.set_ui_open(true)
 	show_page(page)
 	visible = true
 	_slide_to(OPEN_Y)
@@ -71,7 +71,7 @@ func close() -> void:
 	if not _is_open:
 		return
 	_is_open = false
-	get_tree().paused = false
+	Game.set_ui_open(false)
 	_slide_to(UiStyle.SCREEN.y).finished.connect(_hide_if_closed)
 
 
@@ -107,7 +107,7 @@ func show_page(page: Page) -> void:
 ## Tab is read in _input so a focused button can't swallow it as "next control".
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("inventory"):
-		if _is_open or not get_tree().paused:
+		if _is_open or not Game.is_paused():
 			get_viewport().set_input_as_handled()
 			toggle()
 	elif _is_open and event.is_action_pressed("ui_left"):
@@ -120,7 +120,7 @@ func _input(event: InputEvent) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("goals"):
-		if _is_open or not get_tree().paused:
+		if _is_open or not Game.is_paused():
 			get_viewport().set_input_as_handled()
 			toggle_goals()
 	elif _is_open and event.is_action_pressed("ui_cancel"):

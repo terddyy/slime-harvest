@@ -69,9 +69,9 @@ func is_open() -> bool:
 
 func open() -> void:
 	# Something else (the shop) already paused the game and owns Esc.
-	if is_open() or get_tree().paused:
+	if is_open() or Game.is_paused():
 		return
-	get_tree().paused = true
+	Game.set_ui_open(true)
 	Audio.set_music_paused(true)
 	_set_shown(true)
 	_resume_button.grab_focus()
@@ -84,7 +84,7 @@ func close() -> void:
 	_settings_menu.close()
 	_set_shown(false)
 	Audio.set_music_paused(false)
-	get_tree().paused = false
+	Game.set_ui_open(false)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -129,3 +129,4 @@ func _on_farm_restored() -> void:
 	_settings_menu.close()
 	_set_shown(false)
 	Audio.set_music_paused(false)
+	Game.ui_open = false  # the tree stays paused (HUD), but the menu is no longer what blocks the farmer

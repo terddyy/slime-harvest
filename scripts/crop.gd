@@ -89,6 +89,12 @@ func try_grow(is_watered: bool) -> bool:
 	return true
 
 
+## Co-op joiner: shows the host's growth stage.
+func set_stage(new_stage: int) -> void:
+	stage = clampi(new_stage, 0, STAGES - 1)
+	_update_sprite()
+
+
 ## Returns true when this bite finished the crop off.
 func bite() -> bool:
 	_bites += 1

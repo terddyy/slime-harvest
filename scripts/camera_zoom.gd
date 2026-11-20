@@ -22,7 +22,7 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if get_tree().paused:
+	if Game.is_paused():
 		return
 	if event.is_action_pressed("zoom_in"):
 		change_zoom(1)

@@ -50,7 +50,9 @@ var _gayle := Gayle.new()
 var _gayle_talk := GayleTalk.new()
 var _guide := GuideArrow.new()
 var _inventory := InventoryPanel.new()
+var _actions := WorldActions.new()
 var _coop: CoopSession  # only while online
+var _world: CoopWorld  # only while online
 var _tutorial_was_finished := false  # restored on exit: a joiner skips the tips without ending them for good
 var _goal_where := ""  # guide target of the current farm goal, refreshed when the stats change
 
@@ -79,9 +81,6 @@ func _ready() -> void:
 	add_child(_sprinklers)
 
 	player.farm = farm
-	player.fences = _fences
-	player.sprinklers = _sprinklers
-	player.orchard = _orchard
 	player.position = Vector2(WorldLayout.PLAYER_START * TILE) + Vector2(TILE / 2.0, TILE / 2.0)
 	player.walk_bounds = Rect2(Vector2(24, 40), Vector2(MAP_SIZE * TILE) - Vector2(48, 56))
 	player.harvest_requested.connect(_harvest)
@@ -100,6 +99,14 @@ func _ready() -> void:
 	_herd.player = player
 	_herd.collected.connect(_on_product_collected)
 	add_child(_herd)
+
+	_actions.farm = farm
+	_actions.fences = _fences
+	_actions.sprinklers = _sprinklers
+	_actions.orchard = _orchard
+	_actions.herd = _herd
+	add_child(_actions)
+	player.actions = _actions
 
 	hud.setup(player)
 	add_child(_shop)
@@ -180,7 +187,7 @@ func _exit_tree() -> void:
 func _process(_delta: float) -> void:
 	_update_tint()
 	_update_cursor_and_hint()
-	if Input.is_action_just_pressed("skip_phase"):
+	if Input.is_action_just_pressed("skip_phase") and not _is_joiner():
 		Game.skip_phase()
 
 
@@ -220,21 +227,10 @@ func _interact() -> void:
 	if _is_near_gayle():
 		_gayle_talk.open()
 		return
-	if _herd.collect_near(player.global_position):
+	if _is_joiner():  # collecting, picking and planting are the host's job: ask it
+		_world.send_interact(player.target_cell(), _sapling_to_plant())
 		return
-	var cell := player.target_cell()
-	var sapling := _sapling_to_plant()
-	if _orchard.has_fruit(cell):
-		var tree_id := _orchard.harvest(cell)
-		Audio.play_sfx("harvest", 0.05)
-		Game.add_fruit(tree_id, Orchard.FRUIT_PER_TREE)
-		popup("+%d %s" % [Orchard.FRUIT_PER_TREE, Orchard.TYPES[tree_id]["name"].to_lower()], _tree_top(cell), Color(1, 0.7, 0.3))
-	elif sapling != "" and _orchard.can_plant(cell):
-		_orchard.plant(cell, sapling)
-		Game.use_sapling(sapling)
-		Audio.play_sfx("plant")
-	else:
-		_harvest(cell)
+	show_result(_actions.interact(player.target_cell(), player.global_position, _sapling_to_plant()))
 
 
 ## The sapling E plants: the one held by the Seeds tool, else the first one you own.
@@ -256,18 +252,20 @@ func _guide_goal() -> String:
 	return _goal_where
 
 
-func _tree_top(cell: Vector2i) -> Vector2:
-	return Vector2(cell * TILE) + Vector2(TILE / 2.0, TILE)
-
-
 ## Picks a ripe crop: E on it, or using a farming tool on it (Player.harvest_requested).
 func _harvest(cell: Vector2i) -> void:
-	var crop := farm.get_crop(cell)
-	if crop != null and farm.harvest(cell):
-		Audio.play_sfx("harvest", 0.05)
-		Game.add_crop(crop.crop_id)
-		var crop_name: String = Crop.TYPES[crop.crop_id]["name"]
-		popup("+1 " + crop_name.to_lower(), farm.cell_center(cell), Color(1, 0.7, 0.3))
+	if _is_joiner():
+		_world.send_harvest(cell)
+	else:
+		show_result(_actions.harvest(cell))
+
+
+## Plays the sound and shows the floating text of a WorldActions result (a joiner gets it from the host).
+func show_result(result: Dictionary) -> void:
+	if result.has("sfx"):
+		Audio.play_sfx(result["sfx"], result.get("variation", 0.0))
+	if result.has("text"):
+		popup(result["text"], result["pos"], result.get("color", Color.WHITE))
 
 
 func _is_near_stall() -> bool:
@@ -300,6 +298,8 @@ func _guide_point(target: String) -> Vector2:
 
 
 func _is_near_gayle() -> bool:
+	if _is_joiner():  # Gayle follows the host, so only the host talks to her
+		return false
 	return player.global_position.distance_to(_gayle.global_position) < GAYLE_TALK_RANGE
 
 
@@ -384,21 +384,43 @@ func _is_joiner() -> bool:
 	return Net.is_online() and not Net.is_host()
 
 
-## Online play. The host's world is the real one; a joiner gets it from the host as a snapshot.
-## Until the world sync (C3) a joiner's own farm work only changes its own screen.
+## Online play. The host's world is the real one; a joiner gets it from the host as a snapshot
+## (CoopSession) and then asks the host for everything it does (CoopWorld, CoopEntities).
 func _start_coop() -> void:
 	if _is_joiner():
 		SaveGame.write_enabled = false  # the farm is the host's: a joiner never writes a save file
 		_tutorial_was_finished = Tutorial.is_finished
 		Tutorial.is_finished = true
 		_tutorial.visible = false
-		_gayle.process_mode = Node.PROCESS_MODE_DISABLED  # the host runs Gayle
 		player.global_position += CoopRules.start_offset(Net.my_id())
 	_coop = CoopSession.new()
 	_coop.player = player
 	_coop.entities = entities
 	_coop.hud = hud
 	add_child(_coop)
+
+	_world = CoopWorld.new()
+	_world.coop = _coop
+	_world.farm = farm
+	_world.fences = _fences
+	_world.sprinklers = _sprinklers
+	_world.orchard = _orchard
+	_world.actions = _actions
+	add_child(_world)
+	_world.result_received.connect(show_result)
+	_farmhouse.world = _world
+	_world.morning = _farmhouse.sleep_through_night
+	var shared := CoopEntities.new()
+	shared.coop = _coop
+	shared.entities = entities
+	shared.spawner = _spawner
+	shared.herd = _herd
+	shared.gayle = _gayle
+	add_child(shared)
+	shared.enemy_killed.connect(_on_enemy_killed)
+	if _is_joiner():
+		player.remote_world = _world
+		_herd.remote_world = _world
 
 
 func _on_phase_changed(is_night: bool) -> void:
@@ -410,8 +432,9 @@ func _on_phase_changed(is_night: bool) -> void:
 		hud.show_banner("Night %d - slimes are coming!" % Game.day)
 	else:
 		_spawner.end_night()
-		_orchard.new_day()
-		_sprinklers.water_all()  # every sunrise, also after sleeping through the night
+		if not _is_joiner():  # the host grows the trees and waters; the joiners get the result
+			_orchard.new_day()
+			_sprinklers.water_all()  # every sunrise, also after sleeping through the night
 		hud.show_banner("Day %d - the slimes retreat" % Game.day)
 		SaveGame.save()
 

@@ -6,6 +6,9 @@ extends Node
 ## Fence cells are also put in farm.blocked so the hoe can't till under a fence.
 ## No Game/Audio calls in here, so the tests can run this script headless.
 
+## A fence was placed, picked up or hurt. Co-op sends its new state to the joiners.
+signal changed(cell: Vector2i)
+
 const TILE := 16
 const MAX_HP := 8
 const TEXTURE := preload("res://assets/cute_fantasy/Outdoor decoration/Fences.png")
@@ -66,6 +69,24 @@ func blocks(from: Vector2, to: Vector2) -> bool:
 func place(cell: Vector2i) -> bool:
 	if not can_place(cell):
 		return false
+	_add(cell)
+	return true
+
+
+## Joiner: makes the fence on `cell` match the host's (hp 0 = no fence).
+func apply_cell(cell: Vector2i, hp: int) -> void:
+	if hp <= 0:
+		remove(cell)
+		return
+	if not has_fence(cell):
+		_add(cell)
+	var new_hp := clampi(hp, 1, MAX_HP)
+	if new_hp < _hp[cell]:
+		_flash(_sprites[cell])
+	_hp[cell] = new_hp
+
+
+func _add(cell: Vector2i) -> void:
 	var sprite := Sprite2D.new()
 	sprite.texture = TEXTURE
 	sprite.region_enabled = true
@@ -77,7 +98,7 @@ func place(cell: Vector2i) -> bool:
 	_hp[cell] = MAX_HP
 	farm.blocked[cell] = true
 	_repaint_around(cell)
-	return true
+	changed.emit(cell)
 
 
 ## Picks the fence back up (the player gets the piece back). Returns false if there was none.
@@ -86,6 +107,7 @@ func remove(cell: Vector2i) -> bool:
 		return false
 	(_sprites[cell] as Sprite2D).queue_free()
 	_forget(cell)
+	changed.emit(cell)
 	return true
 
 
@@ -97,10 +119,12 @@ func damage(cell: Vector2i, amount: int) -> bool:
 	var sprite: Sprite2D = _sprites[cell]
 	if _hp[cell] > 0:
 		_flash(sprite)
+		changed.emit(cell)
 		return false
 	_burst_chips(sprite.position)
 	sprite.queue_free()
 	_forget(cell)
+	changed.emit(cell)
 	return true
 
 

@@ -55,13 +55,13 @@ func open() -> void:
 	_text.text = LINES[_line_index]
 	_refresh_button()
 	visible = true
-	get_tree().paused = true
+	Game.set_ui_open(true)
 	_toggle.grab_focus()
 
 
 func close() -> void:
 	visible = false
-	get_tree().paused = false
+	Game.set_ui_open(false)
 
 
 func _unhandled_input(event: InputEvent) -> void:

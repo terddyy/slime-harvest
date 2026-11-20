@@ -4,6 +4,9 @@ extends Node2D
 ## over days (new_day() is called at every dawn) and then gives fruit every FRUIT_DAYS days.
 ## Slimes ignore the trees. Trees are static bodies, so the player walks around them.
 
+## A tree was planted, grew or was picked. Co-op sends its new state to the joiners.
+signal changed(cell: Vector2i)
+
 const TILE := 16
 const STAGES := preload("res://assets/cute_fantasy/Crops/Fruit_Tree_Stages.png")  # 3 frames of 32x64
 const FRAME := Vector2(32, 64)
@@ -58,7 +61,27 @@ func plant(cell: Vector2i, id: String) -> bool:
 	_trees[cell] = {"id": id, "age": 0, "wait": 0, "fruit": false}
 	_add_node(cell)
 	_refresh(cell)
+	changed.emit(cell)
 	return true
+
+
+## One tree for co-op: [id, age, wait, fruit], or [] when the cell has none.
+func tree_state(cell: Vector2i) -> Array:
+	if not _trees.has(cell):
+		return []
+	var tree: Dictionary = _trees[cell]
+	return [tree["id"], tree["age"], tree["wait"], tree["fruit"]]
+
+
+## Joiner: makes the tree on `cell` match the host's (see tree_state). Trees are never removed.
+func apply_tree(cell: Vector2i, state: Array) -> void:
+	if state.size() < 4 or not TYPES.has(str(state[0])):
+		return
+	if not _trees.has(cell):
+		_trees[cell] = {}
+		_add_node(cell)
+	_trees[cell] = {"id": str(state[0]), "age": maxi(0, int(state[1])), "wait": maxi(0, int(state[2])), "fruit": state[3] == true}
+	_refresh(cell)
 
 
 ## 0 sapling, 1 young, 2 grown. -1 when there is no tree.
@@ -80,6 +103,7 @@ func harvest(cell: Vector2i) -> String:
 	_trees[cell]["fruit"] = false
 	_trees[cell]["wait"] = 0
 	_refresh(cell)
+	changed.emit(cell)
 	return _trees[cell]["id"]
 
 
@@ -92,6 +116,7 @@ func new_day() -> void:
 			tree["wait"] += 1
 			tree["fruit"] = tree["wait"] >= FRUIT_DAYS
 		_refresh(cell)
+		changed.emit(cell)
 
 
 func to_save() -> Dictionary:

@@ -34,7 +34,11 @@ var mode := Mode.FOLLOW
 ## She can't leave this rectangle (world pixels). Set by Main.
 var walk_bounds := Rect2(0, 0, 0, 0)
 var facing := Vector2.DOWN
+## Co-op joiner: this is a copy of the host's Gayle. She only glides to where the host says she
+## is (show_state) and plays the host's animation.
+var puppet := false
 
+var _puppet_target := Vector2.ZERO
 var _anim := "idle"
 var _anim_time := 0.0
 var _layers: Array[Sprite2D] = []
@@ -72,6 +76,10 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if puppet:
+		global_position = global_position.lerp(_puppet_target, minf(1.0, delta * 12.0))
+		_animate(delta)
+		return
 	_water_timer += delta
 	_attack_timer += delta
 	var busy := _is_busy()
@@ -121,6 +129,20 @@ func from_save(data: Dictionary) -> void:
 	global_position = spot.clamp(walk_bounds.position, walk_bounds.end) if walk_bounds.has_area() else spot
 	var saved_mode := int(SaveUtil.number(data, "mode", Mode.FOLLOW))
 	mode = Mode.STAY if saved_mode == Mode.STAY else Mode.FOLLOW
+
+
+## Co-op host: what the joiners need: [x, y, facing x, facing y, animation].
+func to_state() -> Array:
+	return [global_position.x, global_position.y, facing.x, facing.y, _anim]
+
+
+## Co-op joiner: where the host's Gayle is and what she is doing.
+func show_state(at: Vector2, new_facing: Vector2, anim: String) -> void:
+	if _puppet_target == Vector2.ZERO:
+		global_position = at
+	_puppet_target = at
+	facing = new_facing if new_facing in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT] else Vector2.DOWN
+	_play(anim if Player.ANIMS.has(anim) else "idle")
 
 
 func toggle_mode() -> void:

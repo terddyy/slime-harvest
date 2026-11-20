@@ -46,14 +46,14 @@ func _ready() -> void:
 
 func open() -> void:
 	visible = true
-	get_tree().paused = true
+	Game.set_ui_open(true)
 	_refresh()
 	(_buttons["sell"] as Button).grab_focus()
 
 
 func close() -> void:
 	visible = false
-	get_tree().paused = false
+	Game.set_ui_open(false)
 
 
 func _unhandled_input(event: InputEvent) -> void:

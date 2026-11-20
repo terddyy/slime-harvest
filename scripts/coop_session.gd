@@ -22,6 +22,7 @@ var entities: Node2D
 var hud: Hud
 
 var _farmers := {}  # player id -> RemoteFarmer
+var _ready_joiners: Array[int] = []  # host: joiners that have the farm and can receive world updates
 var _send_time := 0.0
 var _got_snapshot := false
 var _tries := 0
@@ -49,6 +50,27 @@ func _ready() -> void:
 
 func is_joiner() -> bool:
 	return not Net.is_host()
+
+
+## Host: the joiners that already have the farm (the others are still in the lobby or loading,
+## so nothing about the world may be sent to them yet).
+func ready_joiners() -> Array[int]:
+	return _ready_joiners
+
+
+## Host: calls the RPC `method` of `node` on every joiner that has the farm. `args` are its arguments.
+func send(node: Node, method: String, args: Array = []) -> void:
+	for id in _ready_joiners:
+		node.callv("rpc_id", [id, method] + args)
+
+
+## Host: where player `id`'s farmer was last seen (the host's own farmer for HOST_ID).
+func farmer_position(id: int) -> Vector2:
+	if id == Net.HOST_ID and player != null:
+		return player.global_position
+	if _farmers.has(id):
+		return (_farmers[id] as RemoteFarmer).global_position
+	return Vector2.INF
 
 
 ## Joiner: the host's farm has been loaded.
@@ -85,8 +107,10 @@ func _ask_for_snapshot() -> void:
 func _request_snapshot() -> void:
 	if not Net.is_host():
 		return
-	var text := JSON.stringify(SaveGame.snapshot())
-	_receive_snapshot.rpc_id(multiplayer.get_remote_sender_id(), text)
+	var joiner := multiplayer.get_remote_sender_id()
+	_receive_snapshot.rpc_id(joiner, JSON.stringify(SaveGame.snapshot()))
+	if not _ready_joiners.has(joiner):
+		_ready_joiners.append(joiner)  # everything the host sends from now on arrives after the snapshot
 
 
 ## Host -> joiner: the whole farm, in the same format as the save file.
@@ -169,6 +193,7 @@ func _on_player_joined(id: int, player_name: String) -> void:
 
 ## Net has already dropped the player when this arrives, so the name comes from the farmer.
 func _on_player_left(id: int) -> void:
+	_ready_joiners.erase(id)
 	var left_name := "A farmer"
 	if _farmers.has(id):
 		left_name = (_farmers[id] as RemoteFarmer).player_name

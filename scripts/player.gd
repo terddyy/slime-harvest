@@ -50,8 +50,6 @@ const ANIMS := {
 }
 
 var farm: Farm
-var fences: Fences
-var sprinklers: Sprinklers
 ## The player can't leave this rectangle (world pixels). Set by Main.
 var walk_bounds := Rect2(0, 0, 0, 0)
 ## While set (not INF), saves store this spot instead of the real position. The farmhouse
@@ -61,8 +59,10 @@ var tool := Tool.HOE
 var seed_id := "carrot"  # crop type planted by the Seeds tool
 ## Fruit tree held by the Seeds tool instead of a seed ("" = a seed is held).
 var sapling_id := ""
-## Where saplings can be planted. Set by Main.
-var orchard: Orchard
+## What the tools do to the farm (shared with the host's handling of a joiner's requests). Set by Main.
+var actions: WorldActions
+## Online joiner: tool use is sent to the host instead of applied here (the host owns the farm).
+var remote_world: CoopWorld
 var facing := Vector2.DOWN
 
 var _anim := "idle"
@@ -84,6 +84,7 @@ var _aim_with_mouse := false  # highlight follows the mouse; only changes what i
 func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	add_to_group("player")
+	Game.stats_changed.connect(_on_game_stats_changed)
 
 	var body := Node2D.new()
 	body.position = Vector2(0, -8)  # feet are 8 px below the frame centre
@@ -106,6 +107,14 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if Game.ui_open:  # online a menu does not pause the world, so the farmer just stands still
+		velocity = Vector2.ZERO
+		_use_requested = false
+		_use_held = false
+		if not _is_busy():
+			_play("idle")
+		_animate(delta)
+		return
 	if not _is_busy():
 		_read_tool_keys()
 		var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
@@ -138,7 +147,7 @@ func _physics_process(delta: float) -> void:
 ## The scroll wheel cycles tools.
 func _input(event: InputEvent) -> void:
 	# Ctrl + wheel is zoom (CameraZoom), so only the plain wheel switches tools.
-	if event is InputEventMouseButton and event.pressed and not event.ctrl_pressed and not get_tree().paused:
+	if event is InputEventMouseButton and event.pressed and not event.ctrl_pressed and not Game.is_paused():
 		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			set_tool(Tool.values()[(tool + 1) % Tool.size()])
 		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
@@ -176,7 +185,7 @@ func aim_cell(world_pos: Vector2) -> Vector2i:
 ## The tiles the selected tool acts on (an upgraded watering can covers several).
 func tool_cells() -> Array[Vector2i]:
 	if tool == Tool.WATER:
-		return _water_area(target_cell())
+		return WorldActions.water_area(target_cell(), facing, Game.upgrade_level("can"))
 	if tool == Tool.SPRINKLER:
 		return Sprinklers.area_cells(target_cell())  # shows what the sprinkler would water
 	var cells: Array[Vector2i] = [target_cell()]
@@ -269,7 +278,7 @@ func choose_slot(index: int) -> void:
 
 ## Clicks that the HUD (e.g. a hotbar slot) already used never arrive here.
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("use_tool"):
+	if event.is_action_pressed("use_tool") and not Game.ui_open:
 		_use_requested = true
 		_use_held = true
 		# The input that triggered the use decides the aim: a click aims at the mouse,
@@ -296,23 +305,6 @@ func _cycle_seed() -> void:
 		set_sapling(parts[1])
 	else:
 		set_seed(parts[1])
-
-
-## Cells the watering can wets when aimed at `cell`: level 0 just that tile, level 1 a row
-## of 3 across the facing direction, level 2 a 3x3 square that starts at `cell`.
-func _water_area(cell: Vector2i) -> Array[Vector2i]:
-	var cells: Array[Vector2i] = [cell]
-	var level := Game.upgrade_level("can")
-	if level == 0:
-		return cells
-	var ahead := Vector2i(facing)
-	var side := Vector2i(ahead.y, ahead.x)
-	var depth := 3 if level >= 2 else 1
-	cells.clear()
-	for d in depth:
-		for s in range(-1, 2):
-			cells.append(cell + ahead * d + side * s)
-	return cells
 
 
 func _start_action() -> void:
@@ -342,81 +334,22 @@ func _start_action() -> void:
 			_apply_action()  # planting and building are instant
 
 
-## Runs halfway through the tool animation, when the tool "hits".
+## Runs halfway through the tool animation, when the tool "hits". A joiner only asks the host to do it.
 func _apply_action() -> void:
 	_action_pending = false
-	match tool:
-		Tool.HOE:
-			var worked := farm.untill(_action_cell) if _hold_untills else farm.till(_action_cell)
-			Audio.play_sfx("till" if worked else "error", 0.1)
-		Tool.WATER:
-			var watered := false
-			for cell in _water_area(_action_cell):
-				watered = farm.water(cell) or watered
-			Audio.play_sfx("water" if watered else "error", 0.1)
-		Tool.SEEDS:
-			if sapling_id != "":
-				_plant_sapling()
-			elif Game.seed_count(seed_id) > 0 and farm.plant(_action_cell, seed_id):
-				Game.use_seed(seed_id)
-				Audio.play_sfx("plant", 0.1)
-				if Game.seed_count(seed_id) == 0:
-					_cycle_seed()
-			else:
-				Audio.play_sfx("error")
-		Tool.SWORD:
-			_swing_sword()
-		Tool.FENCE:
-			_use_fence()
-		Tool.SPRINKLER:
-			_use_sprinkler()
+	if remote_world != null:
+		remote_world.send_tool(tool, _action_cell, _hold_untills, facing, seed_id, sapling_id)
+		return
+	var result := actions.use_tool(tool, _action_cell, _hold_untills, facing, seed_id, sapling_id if tool == Tool.SEEDS else "", global_position)
+	Audio.play_sfx(result["sfx"], result["variation"])
+	if tool == Tool.SEEDS and result["sfx"] == "plant" and held_count() == 0:
+		_cycle_seed()
 
 
-## Plants the held sapling on the target tile if it is a free spot in the orchard.
-func _plant_sapling() -> void:
-	var can_plant := orchard != null and Game.sapling_count(sapling_id) > 0 and orchard.can_plant(_action_cell)
-	if can_plant and orchard.plant(_action_cell, sapling_id):
-		Game.use_sapling(sapling_id)
-		Audio.play_sfx("plant", 0.1)
-		if Game.sapling_count(sapling_id) == 0:
-			_cycle_seed()
-	else:
-		Audio.play_sfx("error")
-
-
-## Builds a fence on the target tile, or picks up the fence that is already there.
-func _use_fence() -> void:
-	if fences.remove(_action_cell):
-		Game.return_fence()
-		Audio.play_sfx("harvest", 0.1)
-	elif Game.fence_pieces > 0 and fences.place(_action_cell):
-		Game.use_fence()
-		Audio.play_sfx("till", 0.1)
-	else:
-		Audio.play_sfx("error")
-
-
-## Places a sprinkler on the target tile, or picks up the one that is already there.
-func _use_sprinkler() -> void:
-	if sprinklers.remove(_action_cell):
-		Game.return_sprinkler()
-		Audio.play_sfx("harvest", 0.1)
-	elif Game.sprinkler_pieces > 0 and sprinklers.place(_action_cell):
-		Game.use_sprinkler()
-		Audio.play_sfx("till", 0.1)
-	else:
-		Audio.play_sfx("error")
-
-
-func _swing_sword() -> void:
-	Audio.play_sfx("sword_swing", 0.1)
-	var origin := global_position + Vector2(0, -6)
-	for enemy in get_tree().get_nodes_in_group("enemies"):
-		var to_enemy: Vector2 = enemy.body_center() - origin
-		var distance := to_enemy.length()
-		var in_arc := distance <= SWORD_RANGE and facing.dot(to_enemy.normalized()) >= SWORD_ARC
-		if distance <= SWORD_HUG or in_arc:
-			enemy.take_hit(sword_damage(), global_position)
+## Joiner: the host used up the last seed or sapling of the held kind, so pick the next one.
+func _on_game_stats_changed() -> void:
+	if remote_world != null and tool == Tool.SEEDS and held_count() == 0:
+		_cycle_seed()
 
 
 func _snap_to_axis(direction: Vector2) -> Vector2:

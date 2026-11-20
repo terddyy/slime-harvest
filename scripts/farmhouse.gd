@@ -46,6 +46,8 @@ static func outside_spot() -> Vector2:
 
 
 var is_inside := false
+## Online only (set by Main): sleeping waits for every player, see _sleep_together.
+var world: CoopWorld
 
 var _player: Player
 var _camera: CameraZoom
@@ -54,7 +56,9 @@ var _fences: Fences
 var _hud: Hud
 var _entities: Node2D
 var _fade := ColorRect.new()
+var _wait_label := UiStyle.make_label("", 10)
 var _busy := false
+var _waiting := false  # in bed online, waiting for the others
 var _outside_walk_bounds := Rect2()
 var _outside_limits := Rect2i()
 var _rng := RandomNumberGenerator.new()
@@ -92,6 +96,8 @@ func _draw() -> void:
 ## E near the door or the bed. Returns true when it handled the press.
 func interact() -> bool:
 	if _busy:
+		if _waiting:
+			world.cancel_sleep()  # E again: get out of bed
 		return true
 	if is_inside:
 		if _near_inside_door():
@@ -109,6 +115,8 @@ func interact() -> bool:
 
 ## Text for the HUD hint line ("" when there is nothing to do here).
 func hint() -> String:
+	if _waiting:
+		return "E: get out of bed"
 	if _busy:
 		return ""
 	if is_inside:
@@ -169,25 +177,65 @@ func _try_sleep() -> void:
 	if not _can_sleep():
 		_hud.show_banner("Too early to sleep")
 		return
-	_sleep()
+	if Net.is_online():
+		_sleep_together()
+	else:
+		_sleep()
 
 
 func _sleep() -> void:
 	_busy = true
 	_player.set_physics_process(false)
 	await _fade_to(1.0, SLEEP_FADE_TIME)
-	var eaten := SleepRules.eaten_crops(_farm.crop_cells(), _fences.has_fence, _farm.bounds, _rng)
-	for cell in eaten:
-		_farm.remove_crop(cell)
-	Game.sleep_to_morning()  # Main reacts: dawn banner, clears enemies, auto-save
-	var text := "Day %d - you slept well" % Game.day
-	if not eaten.is_empty():
-		text = "Day %d - slimes ate %d crop%s while you slept" % [Game.day, eaten.size(), "" if eaten.size() == 1 else "s"]
-	_hud.show_banner(text)
+	_hud.show_banner(sleep_through_night())
 	await get_tree().create_timer(SLEEP_HOLD_TIME).timeout
 	await _fade_to(0.0, SLEEP_FADE_TIME)
 	_player.set_physics_process(true)
 	_busy = false
+
+
+## The night passes: slimes eat the crops that are not fenced in, then it is morning.
+## Returns the banner text. Solo it runs when you sleep; online the host runs it once everybody is in bed.
+func sleep_through_night() -> String:
+	var eaten := SleepRules.eaten_crops(_farm.crop_cells(), _fences.has_fence, _farm.bounds, _rng)
+	for cell in eaten:
+		_farm.remove_crop(cell)
+	Game.sleep_to_morning()  # Main reacts: dawn banner, clears enemies, auto-save
+	if eaten.is_empty():
+		return "Day %d - you slept well" % Game.day
+	return "Day %d - slimes ate %d crop%s while you slept" % [Game.day, eaten.size(), "" if eaten.size() == 1 else "s"]
+
+
+## Online: go to bed and wait. When every player is in bed the host runs the morning and CoopWorld
+## wakes everybody (E gets you out of bed again). The world keeps running meanwhile.
+func _sleep_together() -> void:
+	_busy = true
+	_waiting = true
+	_player.set_physics_process(false)
+	await _fade_to(1.0, SLEEP_FADE_TIME)
+	_wait_label.text = "Waiting for the others..."
+	_wait_label.visible = true
+	var woke_with := [false, ""]
+	world.woke.connect(func(text: String) -> void:
+		woke_with[0] = true
+		woke_with[1] = text, CONNECT_ONE_SHOT)
+	world.sleep_waiting.connect(_show_waiting)
+	world.set_sleeping(true)
+	while not woke_with[0]:
+		await get_tree().process_frame
+	world.sleep_waiting.disconnect(_show_waiting)
+	_waiting = false
+	_wait_label.visible = false
+	if woke_with[1] != "":
+		_hud.show_banner(woke_with[1])
+		await get_tree().create_timer(SLEEP_HOLD_TIME).timeout
+	await _fade_to(0.0, SLEEP_FADE_TIME)
+	_player.set_physics_process(true)
+	_busy = false
+
+
+func _show_waiting(missing: int) -> void:
+	_wait_label.text = "Waiting for %d more..." % missing if missing > 0 else "Waiting for the others..."
 
 
 # --- Helpers ----------------------------------------------------------------
@@ -217,6 +265,11 @@ func _build_fade() -> void:
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(_fade)
+	_wait_label.size = UiStyle.SCREEN
+	_wait_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_wait_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_wait_label.visible = false
+	layer.add_child(_wait_label)
 	add_child(layer)
 
 

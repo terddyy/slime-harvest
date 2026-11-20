@@ -11,6 +11,12 @@ var type_id := "chicken"
 var pen := Rect2()  # in pixels; feet stay inside
 ## Last day the product was taken. A new animal starts at today, so it gives its first one tomorrow.
 var collected_day := 1
+## Co-op joiner: a copy of the host's animal. It only glides to where the host says it is.
+var puppet := false
+
+var _puppet_ready := false
+var _puppet_moving := false
+var _moving := false
 
 var _data: Dictionary
 var _sprite := Sprite2D.new()
@@ -45,7 +51,10 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_time += delta
 	var moving := false
-	if _wait > 0.0:
+	if puppet:
+		position = position.lerp(_target, minf(1.0, delta * 12.0))
+		moving = _puppet_moving
+	elif _wait > 0.0:
 		_wait -= delta
 	elif position.distance_to(_target) < 1.0:
 		_wait = randf_range(1.5, 4.0)
@@ -55,13 +64,27 @@ func _process(delta: float) -> void:
 		position += step
 		_sprite.flip_h = (step.x > 0.0) == bool(_data["faces_left"])
 		moving = true
+	_moving = moving
 	_update_frame(moving)
 	_bubble.visible = has_product()
 	_bubble.position = Vector2(-8, _bubble_y + sin(_time * 4.0) * 1.5)
 
 
 func has_product() -> bool:
-	return Game.day > collected_day
+	return _puppet_ready if puppet else Game.day > collected_day
+
+
+## Co-op host: what the joiners need: [type, x, y, facing left, walking, has a product].
+func to_state() -> Array:
+	return [type_id, position.x, position.y, _sprite.flip_h, _moving, has_product()]
+
+
+## Co-op joiner: where the host's animal is and what it is doing.
+func show_state(at: Vector2, flip: bool, walking: bool, has_item: bool) -> void:
+	_target = at
+	_sprite.flip_h = flip
+	_puppet_moving = walking
+	_puppet_ready = has_item
 
 
 ## Takes today's product. Returns its id, or "" when there is none yet.

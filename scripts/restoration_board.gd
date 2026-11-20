@@ -30,7 +30,7 @@ func _ready() -> void:
 func open() -> void:
 	opened.emit()
 	visible = true
-	get_tree().paused = true
+	Game.set_ui_open(true)
 	_info_label.text = ""
 	_refresh()
 	var first := _leave
@@ -43,7 +43,7 @@ func open() -> void:
 
 func close() -> void:
 	visible = false
-	get_tree().paused = false
+	Game.set_ui_open(false)
 
 
 func _unhandled_input(event: InputEvent) -> void:
