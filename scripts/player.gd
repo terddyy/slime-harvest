@@ -183,6 +183,11 @@ func tool_cells() -> Array[Vector2i]:
 	return cells
 
 
+## Name of the animation playing now ("idle", "walk", ...), for co-op to show on other screens.
+func current_anim() -> String:
+	return _anim
+
+
 func set_tool(new_tool: Tool) -> void:
 	tool = new_tool
 	tool_changed.emit(tool)

@@ -37,6 +37,7 @@ func _ready() -> void:
 	var title_button := UiStyle.make_button("Quit to Title")
 	for button in [_resume_button, restart_button, _how_button, _settings_button, title_button]:
 		column.add_child(button)
+	restart_button.visible = not Net.is_online()  # a new game would drop the friends' farm
 	_resume_button.pressed.connect(close)
 	restart_button.pressed.connect(Game.start_new_game)
 	_how_button.pressed.connect(_open_how_to_play)

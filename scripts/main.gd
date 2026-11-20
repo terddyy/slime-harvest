@@ -50,6 +50,8 @@ var _gayle := Gayle.new()
 var _gayle_talk := GayleTalk.new()
 var _guide := GuideArrow.new()
 var _inventory := InventoryPanel.new()
+var _coop: CoopSession  # only while online
+var _tutorial_was_finished := false  # restored on exit: a joiner skips the tips without ending them for good
 var _goal_where := ""  # guide target of the current farm goal, refreshed when the stats change
 
 
@@ -120,6 +122,18 @@ func _ready() -> void:
 	_farmhouse.setup(player, _camera, farm, _fences, hud, entities)
 	Game.phase_changed.connect(_on_phase_changed)
 	_register_save_systems()
+	if Net.is_online():
+		_start_coop()
+	if not _is_joiner():  # a joiner's farm arrives from the host (CoopSession)
+		_load_or_start_new()
+	_announce_restorable(true)
+	Game.stats_changed.connect(_announce_restorable.bind(false))
+	_update_goal_target()
+	Game.stats_changed.connect(_update_goal_target)
+	Audio.play_music("day")
+
+
+func _load_or_start_new() -> void:
 	if SaveGame.load_requested:
 		SaveGame.load_requested = false
 		if SaveGame.load_game():
@@ -130,17 +144,12 @@ func _ready() -> void:
 			_start_new_day_one()
 	else:
 		_start_new_day_one()
-	_announce_restorable(true)
-	Game.stats_changed.connect(_announce_restorable.bind(false))
-	_update_goal_target()
-	Game.stats_changed.connect(_update_goal_target)
-	Audio.play_music("day")
 
 
 ## A new run: the story intro first (once, see Game.intro_seen), then the first-day banner.
 func _start_new_day_one() -> void:
 	var banner := func() -> void: hud.show_banner("Day 1 - plant carrots before night!")
-	if Game.intro_seen:
+	if Game.intro_seen or Net.is_online():  # the intro would pause the game for the friends too
 		banner.call()
 		return
 	Game.intro_seen = true
@@ -150,6 +159,7 @@ func _start_new_day_one() -> void:
 ## One banner per project, the first time its price is within reach. `silent` only records
 ## what is already affordable (after loading a save), so nothing is announced twice.
 func _announce_restorable(silent: bool) -> void:
+	silent = silent or (_is_joiner() and not _coop.has_farm())  # the host's farm is still arriving
 	var id := Restoration.affordable_next(Game.restored, Game.gold)
 	if id == "" or _announced.has(id):
 		return
@@ -164,6 +174,7 @@ func _update_goal_target() -> void:
 
 func _exit_tree() -> void:
 	SaveGame.unregister_all()
+	Tutorial.is_finished = _tutorial_was_finished
 
 
 func _process(_delta: float) -> void:
@@ -369,11 +380,33 @@ func _update_tint() -> void:
 		night_tint.color = DAY_COLOR.lerp(DUSK_COLOR, smoothstep(0.8, 1.0, progress))
 
 
+func _is_joiner() -> bool:
+	return Net.is_online() and not Net.is_host()
+
+
+## Online play. The host's world is the real one; a joiner gets it from the host as a snapshot.
+## Until the world sync (C3) a joiner's own farm work only changes its own screen.
+func _start_coop() -> void:
+	if _is_joiner():
+		SaveGame.write_enabled = false  # the farm is the host's: a joiner never writes a save file
+		_tutorial_was_finished = Tutorial.is_finished
+		Tutorial.is_finished = true
+		_tutorial.visible = false
+		_gayle.process_mode = Node.PROCESS_MODE_DISABLED  # the host runs Gayle
+		player.global_position += CoopRules.start_offset(Net.my_id())
+	_coop = CoopSession.new()
+	_coop.player = player
+	_coop.entities = entities
+	_coop.hud = hud
+	add_child(_coop)
+
+
 func _on_phase_changed(is_night: bool) -> void:
 	Audio.play_sfx("night_start" if is_night else "day_start")
 	Audio.play_music("night" if is_night else "day")
 	if is_night:
-		_spawner.start_night(Game.day)
+		if not _is_joiner():  # only the host spawns slimes
+			_spawner.start_night(Game.day)
 		hud.show_banner("Night %d - slimes are coming!" % Game.day)
 	else:
 		_spawner.end_night()

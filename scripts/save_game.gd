@@ -13,6 +13,8 @@ const DEFAULT_PATH := "user://save.json"
 var path := DEFAULT_PATH
 ## Set by the title's Continue button; Main loads the save once the world is built.
 var load_requested := false
+## False for a co-op joiner: the farm belongs to the host, so a joiner never writes the file.
+var write_enabled := true
 
 var _systems := {}  # key -> Node (insertion order = load order)
 
@@ -24,6 +26,7 @@ func register(key: String, system: Node) -> void:
 ## Main calls this when it leaves the tree, so the title screen never saves.
 func unregister_all() -> void:
 	_systems.clear()
+	write_enabled = true
 
 
 func has_save() -> bool:
@@ -36,11 +39,9 @@ func delete() -> void:
 
 ## Writes every registered system. Returns false if nothing is registered or the write fails.
 func save() -> bool:
-	if _systems.is_empty():
+	if _systems.is_empty() or not write_enabled:
 		return false
-	var sections := {}
-	for key: String in _systems:
-		sections[key] = (_systems[key] as Object).call("to_save")
+	var sections := snapshot()
 	var temp_path := path + ".tmp"
 	var file := FileAccess.open(temp_path, FileAccess.WRITE)
 	if file == null:
@@ -48,6 +49,15 @@ func save() -> bool:
 	file.store_string(JSON.stringify({"version": VERSION, "sections": sections}))
 	file.close()
 	return DirAccess.rename_absolute(temp_path, path) == OK
+
+
+## The current state of every registered system (key -> Dictionary). Co-op sends this
+## to a joiner; save() writes it to the file.
+func snapshot() -> Dictionary:
+	var sections := {}
+	for key: String in _systems:
+		sections[key] = (_systems[key] as Object).call("to_save")
+	return sections
 
 
 ## The saved sections (key -> Dictionary), or {} when there is no usable save.
@@ -68,10 +78,15 @@ func load_game() -> bool:
 	var sections := read()
 	if sections.is_empty():
 		return false
+	apply(sections)
+	return true
+
+
+## Gives every registered system its data from `sections` (a saved file or a co-op snapshot).
+func apply(sections: Dictionary) -> void:
 	for key: String in _systems:
 		if sections.has(key) and sections[key] is Dictionary:
 			(_systems[key] as Object).call("from_save", sections[key])
-	return true
 
 
 func _notification(what: int) -> void:

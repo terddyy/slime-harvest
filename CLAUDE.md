@@ -62,6 +62,10 @@ scripts/save_game.gd  autoload "SaveGame": save file (user://save.json), systems
 scripts/save_util.gd class SaveUtil: safe readers for save data
 scripts/net.gd       autoload "Net": online co-op connection (host/join with a room code, players, signals); solo play never uses it
 scripts/relay_peer.gd class RelayPeer (MultiplayerPeerExtension): WebSocket peer for the relay, so normal @rpc works
+scripts/lobby.gd     class Lobby: title "Play Together" panel (host with a room code / join with code + name)
+scripts/coop_session.gd class CoopSession: online part of Main: farm snapshot to joiners, position sync, join/leave banners
+scripts/remote_farmer.gd class RemoteFarmer: another player's farmer (tinted shirt, name tag, interpolated)
+scripts/coop_rules.gd class CoopRules: farmer colours, joiner start spot, snapshot filter, state checks (pure, tested)
 server/relay.gd     room relay (headless Godot script, standalone, not exported): rooms, codes, forwards packets
 scripts/game.gd      autoload "Game": settings, clock (day/night), gold, seeds/crops per type, fence pieces,
                      upgrade levels + prices, end of run, input map, scene changes

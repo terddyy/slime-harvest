@@ -14,6 +14,7 @@ func _initialize() -> void:
 	_test_settings()
 	_test_story()
 	_test_relay_peer_helpers()
+	_test_coop_rules()
 	_test_crop_data()
 	_test_inventory_per_type()
 	_test_upgrades()
@@ -1211,6 +1212,41 @@ func _test_story() -> void:
 			_check(str(panel["text"]).length() > 20 and str(panel["text"]).length() <= 160, "%s text fits the box" % name)
 	var lines := Credits.roll_lines()
 	_check(lines.has(Credits.DEVELOPER) and lines.has(Credits.WEBSITE), "credits roll names the developer")
+
+
+func _test_coop_rules() -> void:
+	_check(CoopRules.slot(1) == 0 and CoopRules.slot(4) == 3, "the room id decides the farmer slot")
+	_check(CoopRules.slot(99) == CoopRules.FARMER_TINTS.size() - 1 and CoopRules.slot(0) == 0, "a strange id stays inside the slots")
+	var tints := {}
+	for id in [1, 2, 3, 4]:
+		tints[CoopRules.tint(id)] = true
+	_check(tints.size() == 4, "the four farmers have four different colours")
+	_check(CoopRules.start_offset(1) == Vector2.ZERO and CoopRules.start_offset(3).x > CoopRules.start_offset(2).x, "joiners start further apart")
+	var sections := {"game": {"gold": 5}, "farm": {}, "player": {"x": 1}, "camera": {"zoom": 2}}
+	var kept := CoopRules.joiner_sections(sections)
+	_check(kept.has("game") and kept.has("farm") and not kept.has("player") and not kept.has("camera"), "a joiner keeps its own player and camera")
+	_check(CoopRules.parse_snapshot(JSON.stringify(sections)).has("game"), "a snapshot text parses back")
+	_check(CoopRules.parse_snapshot("not json").is_empty() and CoopRules.parse_snapshot("[1]").is_empty(), "a bad snapshot text gives nothing")
+	var bounds := Rect2(0, 0, 100, 100)
+	var anims := ["idle", "walk"]
+	var good := CoopRules.clean_state(Vector2(50, 60), Vector2.LEFT, "walk", bounds, anims)
+	_check(good["position"] == Vector2(50, 60) and good["facing"] == Vector2.LEFT and good["anim"] == "walk", "a good state passes unchanged")
+	var far := CoopRules.clean_state(Vector2(900, -40), Vector2(3, 4), "fly", bounds, anims)
+	_check(far["position"] == Vector2(100, 0), "a position off the map is pulled back in")
+	_check(far["facing"] == Vector2.DOWN and far["anim"] == "idle", "an unknown facing or animation is replaced")
+	var nan := CoopRules.clean_state(Vector2(NAN, 5), Vector2.UP, "idle", bounds, anims)
+	_check(nan["position"] == bounds.get_center(), "a NaN position is replaced")
+	var save: Node = root.get_node("SaveGame")
+	var dummy := _Dummy.new()
+	dummy.value = 3
+	save.register("dummy", dummy)
+	var shot: Dictionary = save.snapshot()
+	save.apply({"dummy": {"value": 9}})
+	_check(shot["dummy"]["value"] == 3 and dummy.value == 9, "snapshot reads the systems and apply gives data to them")
+	save.write_enabled = false
+	_check(not save.save(), "a joiner (write_enabled off) never writes the save file")
+	save.unregister_all()
+	_check(save.write_enabled, "leaving the farm turns saving back on")
 
 
 func _test_relay_peer_helpers() -> void:

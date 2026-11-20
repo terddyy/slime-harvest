@@ -26,6 +26,7 @@ var _menu := Control.new()
 var _how_to_play := HowToPlay.new()
 var _settings_menu := SettingsMenu.new()
 var _credits := Credits.new()
+var _lobby := Lobby.new()
 var _footer := UiStyle.make_label(Credits.footer_text(), UiStyle.TEXT_SIZE)
 var _new_button := UiStyle.make_button("New Game")
 var _continue_button := UiStyle.make_button("Continue")
@@ -71,16 +72,18 @@ func _build_ui() -> void:
 	_menu.position = Vector2(0, 34)  # sit below the title
 	_menu.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_menu)
-	var column := UiStyle.make_centered_panel(_menu)
+	var column := UiStyle.make_centered_panel(_menu, 1)  # seven buttons with a save: keep them tight
+	var together_button := UiStyle.make_button("Play Together")
 	var how_button := UiStyle.make_button("How to Play")
 	var settings_button := UiStyle.make_button("Settings")
 	var credits_button := UiStyle.make_button("Credits")
 	var quit_button := UiStyle.make_button("Quit")
-	for button in [_continue_button, _new_button, how_button, settings_button, credits_button, quit_button]:
+	for button in [_continue_button, _new_button, together_button, how_button, settings_button, credits_button, quit_button]:
 		column.add_child(button)
 	_continue_button.visible = SaveGame.has_save()
 	_continue_button.pressed.connect(_continue_game)
 	_new_button.pressed.connect(_on_new_game_pressed)
+	together_button.pressed.connect(_open_lobby)
 	how_button.pressed.connect(_open_how_to_play)
 	settings_button.pressed.connect(_open_settings)
 	credits_button.pressed.connect(_open_credits)
@@ -100,6 +103,8 @@ func _build_ui() -> void:
 	root.add_child(_settings_menu)
 	_credits.closed.connect(_close_how_to_play.bind(credits_button))
 	root.add_child(_credits)
+	_lobby.closed.connect(_close_how_to_play.bind(together_button))
+	root.add_child(_lobby)
 	_build_confirm(root)
 	_focus_first_button()
 
@@ -162,6 +167,12 @@ func _open_settings() -> void:
 	_menu.visible = false
 	_footer.visible = false
 	_settings_menu.open()
+
+
+func _open_lobby() -> void:
+	_menu.visible = false
+	_footer.visible = false
+	_lobby.open()
 
 
 func _open_credits() -> void:

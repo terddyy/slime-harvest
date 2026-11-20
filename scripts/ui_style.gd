@@ -43,6 +43,15 @@ static func make_theme() -> Theme:
 		theme.set_color(color_name, "Button", TEXT_COLOR)
 	theme.set_color("font_hover_color", "Button", Color.WHITE)
 	theme.set_color("font_focus_color", "Button", Color.WHITE)
+	# Text boxes (the co-op lobby asks for a name and a room code).
+	var field := _box(OUTLINE_COLOR, BUTTON_BORDER)
+	theme.set_stylebox("normal", "LineEdit", field)
+	theme.set_stylebox("read_only", "LineEdit", field)
+	theme.set_stylebox("focus", "LineEdit", _box(OUTLINE_COLOR, HIGHLIGHT))
+	theme.set_font_size("font_size", "LineEdit", BUTTON_TEXT_SIZE)
+	theme.set_color("font_color", "LineEdit", TEXT_COLOR)
+	theme.set_color("font_placeholder_color", "LineEdit", BUTTON_BORDER)
+	theme.set_color("caret_color", "LineEdit", HIGHLIGHT)
 	return theme
 
 

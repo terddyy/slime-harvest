@@ -455,6 +455,7 @@ func enter_farm() -> void:
 
 
 func go_to_title() -> void:
+	Net.leave()  # no-op when playing solo; the host closes the room, a joiner walks out
 	reset()
 	get_tree().paused = false
 	get_tree().change_scene_to_file(TITLE_SCENE)

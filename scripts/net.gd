@@ -13,6 +13,7 @@ signal player_joined(id: int, player_name: String)  ## somebody else arrived (jo
 signal player_left(id: int)
 signal failed(reason: String)  ## friendly text: could not connect, wrong code, full room...
 signal host_left  ## we are a joiner and the host is gone
+signal game_start  ## we are a joiner and the host's farm is running: load it (see announce_start)
 
 const DEFAULT_RELAY_URL := "wss://slimeharvest.imogen.dev/relay"
 const HOST_ID := 1
@@ -30,6 +31,8 @@ var relay_url := DEFAULT_RELAY_URL
 var room_code := ""
 ## player id -> name, everybody in the room including us.
 var players := {}
+## Host only: the farm scene is running, so a joiner who arrives gets sent straight in.
+var game_started := false
 
 var _peer: RelayPeer
 var _my_name := ""
@@ -86,6 +89,15 @@ func is_online() -> bool:
 	return _peer != null and room_code != ""
 
 
+## Host only: the farm is built (Main calls this). Tells every joiner in the room to load it,
+## and anybody who joins later too.
+func announce_start() -> void:
+	if not is_host():
+		return
+	game_started = true
+	_go.rpc()
+
+
 func is_host() -> bool:
 	return is_online() and multiplayer.get_unique_id() == HOST_ID
 
@@ -135,6 +147,8 @@ func _on_peer_connected(id: int) -> void:
 		return
 	players[id] = _peer.names.get(id, "Farmer")
 	player_joined.emit(id, players[id])
+	if game_started and is_host():
+		_go.rpc_id(id)
 
 
 func _on_peer_disconnected(id: int) -> void:
@@ -153,7 +167,14 @@ func _give_up(reason: String) -> void:
 	failed.emit(REASONS.get(reason, "Could not connect."))
 
 
+## Host -> joiner: the farm is running, go in.
+@rpc("authority", "call_remote", "reliable")
+func _go() -> void:
+	game_start.emit()
+
+
 func _reset() -> void:
 	_peer = null
 	room_code = ""
+	game_started = false
 	players.clear()
