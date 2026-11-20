@@ -13,7 +13,7 @@ config_version=5
 config/name="Slime Harvest"
 run/main_scene="res://scenes/title.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
-config/icon="res://assets/icon.png"
+config/icon="res://assets/generated/icon.png"
 
 [autoload]
 

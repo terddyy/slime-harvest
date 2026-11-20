@@ -18,7 +18,8 @@ const CARROT_ROW := 2  # Crops.png band (see docs/ASSETS.md)
 const RIPE_COLUMN := 5
 const PATCH_CELL := Vector2i(3, 11)  # top-left tile of the carrot patch
 const PATCH_SIZE := Vector2i(5, 3)
-const TITLE_COLOR := Color(0.75, 1.0, 0.45)
+const LOGO := preload("res://assets/generated/logo.png")  # 160x78, see docs/ASSETS.md
+const LOGO_TOP := 6.0
 
 var _scenery := Node2D.new()
 var _menu := Control.new()
@@ -55,13 +56,13 @@ func _build_ui() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(root)
 
-	var title := UiStyle.make_label("Slime Harvest", 32, TITLE_COLOR)
-	title.add_theme_constant_override("outline_size", 8)
-	title.position = Vector2(0, 28)
-	title.size = Vector2(UiStyle.SCREEN.x, 40)
-	root.add_child(title)
+	var logo := TextureRect.new()
+	logo.texture = LOGO
+	logo.position = Vector2((UiStyle.SCREEN.x - LOGO.get_width()) / 2.0, LOGO_TOP)
+	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(logo)
 	var tagline := UiStyle.make_label("Restore the farm. Protect the harvest.", 10)
-	tagline.position = Vector2(0, 70)
+	tagline.position = Vector2(0, LOGO_TOP + LOGO.get_height() + 2)
 	tagline.size = Vector2(UiStyle.SCREEN.x, 14)
 	root.add_child(tagline)
 

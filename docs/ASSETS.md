@@ -193,3 +193,15 @@ animations, only the first columns are filled. Other files (Chicken_02..18, Roos
 - Cow (head faces left; feet bottom at y=27, centre x=16): row 0 idle side (2), rows 1-2 idle front/back,
   row 3 walk side (8), rows 4-5 walk front/back (8), row 10 sleeping (8).
 - Product icons used in bubbles and the shop: egg (6,1) and milk bottle (7,0) in `Food_Icons_Outline.png`.
+
+## Generated art (`assets/generated/`)
+
+Made with the gpt-image skill; unlike the pack these files are ours and are tracked in git.
+Each has its prompt next to it (`<name>.prompt.txt`). Raw renders are big, so
+`tools/process_generated_art.py <raw_logo> <raw_icon>` makes the game-ready files (Lanczos downscale).
+
+- `logo.png` (160x78, transparent): "Slime Harvest" logo. Rendered on flat magenta, which the script keys out.
+  Used on the title screen (`scripts/title.gd`, `LOGO`), shown at 1:1 so it stays crisp under nearest filtering.
+- `icon.png` (256x256): slime + carrot app icon. `config/icon` in `project.godot` and `application/icon`
+  in `export_presets.cfg` point at it (replaces the old pack-derived `assets/icon.png`).
+- No separate title-screen illustration: the pack farm backdrop already fills the screen.

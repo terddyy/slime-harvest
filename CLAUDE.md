@@ -106,6 +106,7 @@ scripts/how_to_play.gd class HowToPlay: goal + controls panel (title and pause m
 scripts/ui_style.gd  class UiStyle: shared menu theme, panels and buttons (static helpers)
 tests/run_tests.gd   headless tests (SceneTree script, no addons)
 tools/gen_audio.py   generates every WAV in assets/audio/ (Python stdlib only)
+assets/generated/     our own generated art (logo, icon, prompts); tools/process_generated_art.py downsizes raw renders
 assets/audio/        sfx/*.wav one-shots, music/*.wav loops (generated, don't hand-edit)
 assets/cute_fantasy/ the art pack (do not rename files, paths are referenced in code)
 docs/                design + asset docs
