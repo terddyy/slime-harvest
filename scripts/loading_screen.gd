@@ -56,9 +56,13 @@ func _process(delta: float) -> void:
 	var status := ResourceLoader.load_threaded_get_status(Game.MAIN_SCENE, progress)
 	_bar.value = LoadingTips.percent(progress)
 	if status == ResourceLoader.THREAD_LOAD_FAILED or status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
-		push_error("Could not load %s" % Game.MAIN_SCENE)
+		# The threaded load can fail intermittently (scripts parsed on the loader thread race
+		# with their preloads). A synchronous load works, so retry that before giving up.
 		_done = true
-		Game.go_to_title()
+		_bar.value = 100
+		if get_tree().change_scene_to_file(Game.MAIN_SCENE) != OK:
+			push_error("Could not load %s" % Game.MAIN_SCENE)
+			Game.go_to_title()
 	elif status == ResourceLoader.THREAD_LOAD_LOADED and _elapsed >= MIN_SECONDS:
 		_bar.value = 100
 		_done = true
