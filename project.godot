@@ -23,6 +23,7 @@ boot_splash/use_filter=false
 Game="*res://scripts/game.gd"
 Audio="*res://scripts/audio.gd"
 SaveGame="*res://scripts/save_game.gd"
+Net="*res://scripts/net.gd"
 
 [display]
 

@@ -26,6 +26,10 @@ GODOT="<path to Godot_v4.7.2-stable_win64_console.exe>"   # the real path is in 
   Try it with `python -m http.server 8060 --bind 127.0.0.1 --directory export/web`. Hosting on the
   owner's VPS (nginx, https://slimeharvest.imogen.dev) and the upload script: `deploy/README.md`. Code that can't work in a browser
   (quitting, window close) checks `OS.has_feature("web")`.
+- Online co-op relay, locally: `"$GODOT" --headless --path . --script res://server/relay.gd -- --port=9080`; clients use
+  `-- --relay=ws://127.0.0.1:9080` (default is the production URL, so always pass it when testing).
+- Net test (starts a relay and two joiner processes itself, exit 1 on failure; ~15 s):
+  `"$GODOT" --headless --path . res://tests/net_test.tscn`
 - Aim regression test (real input events, exit 1 on failure):
   `"$GODOT" --headless --path . res://tests/aim_test.tscn`
 - Restore-everything playthrough by a bot (farms, keeps animals + orchard, buys projects in order;
@@ -56,6 +60,9 @@ scenes/title.tscn    start scene (run/main_scene): title screen
 scenes/main.tscn     game scene: Ground, Farm, Cursor, Entities(y-sorted: Player), NightTint, HUD, PauseMenu
 scripts/save_game.gd  autoload "SaveGame": save file (user://save.json), systems register to_save/from_save
 scripts/save_util.gd class SaveUtil: safe readers for save data
+scripts/net.gd       autoload "Net": online co-op connection (host/join with a room code, players, signals); solo play never uses it
+scripts/relay_peer.gd class RelayPeer (MultiplayerPeerExtension): WebSocket peer for the relay, so normal @rpc works
+server/relay.gd     room relay (headless Godot script, standalone, not exported): rooms, codes, forwards packets
 scripts/game.gd      autoload "Game": settings, clock (day/night), gold, seeds/crops per type, fence pieces,
                      upgrade levels + prices, end of run, input map, scene changes
 scripts/world_layout.gd class WorldLayout: the 80x50 map as data (areas, ponds, paths, trees, rocks; tested)

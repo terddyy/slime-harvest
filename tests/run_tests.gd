@@ -13,6 +13,7 @@ func _initialize() -> void:
 	_test_loading_tips()
 	_test_settings()
 	_test_story()
+	_test_relay_peer_helpers()
 	_test_crop_data()
 	_test_inventory_per_type()
 	_test_upgrades()
@@ -1210,3 +1211,15 @@ func _test_story() -> void:
 			_check(str(panel["text"]).length() > 20 and str(panel["text"]).length() <= 160, "%s text fits the box" % name)
 	var lines := Credits.roll_lines()
 	_check(lines.has(Credits.DEVELOPER) and lines.has(Credits.WEBSITE), "credits roll names the developer")
+
+
+func _test_relay_peer_helpers() -> void:
+	_check(RelayPeer.clean_code(" k7m2qx ") == "K7M2QX", "room code is trimmed and upper-cased")
+	_check(RelayPeer.clean_code("K7M2Q") == "", "a short room code is refused")
+	_check(RelayPeer.clean_code("K7M2QXA") == "", "a long room code is refused")
+	_check(RelayPeer.clean_code("K7M2Q0") == "", "a room code with 0 (not in the alphabet) is refused")
+	_check(RelayPeer.clean_name("  Sam  ") == "Sam", "player name is trimmed")
+	_check(RelayPeer.clean_name("") == "Farmer", "an empty player name becomes Farmer")
+	_check(RelayPeer.clean_name("A".repeat(40)).length() == RelayPeer.MAX_NAME_LENGTH, "a long player name is cut")
+	_check(RelayPeer.clean_name("a
+b	c") == "abc", "control characters are dropped from names")
